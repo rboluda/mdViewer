@@ -21,6 +21,17 @@ try {
         $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
         $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+        # Fondo blanco con esquinas redondeadas (estilo icono de Windows 11)
+        $radius = [Math]::Max(2, [int]($size * 0.18))
+        $path = [System.Drawing.Drawing2D.GraphicsPath]::new()
+        $d = $radius * 2
+        $path.AddArc(0, 0, $d, $d, 180, 90)
+        $path.AddArc($size - $d - 1, 0, $d, $d, 270, 90)
+        $path.AddArc($size - $d - 1, $size - $d - 1, $d, $d, 0, 90)
+        $path.AddArc(0, $size - $d - 1, $d, $d, 90, 90)
+        $path.CloseFigure()
+        $g.FillPath([System.Drawing.Brushes]::White, $path)
+        $path.Dispose()
         $g.DrawImage($src, [System.Drawing.Rectangle]::new(0, 0, $size, $size), $crop, [System.Drawing.GraphicsUnit]::Pixel)
         $g.Dispose()
         $ms = [System.IO.MemoryStream]::new()

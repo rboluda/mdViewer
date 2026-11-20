@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MdViewer.App.Editor;
+using MdViewer.App.Integration;
 using MdViewer.App.Theming;
 using MdViewer.App.Updates;
 using MdViewer.Core.Diagnostics;
@@ -120,6 +121,13 @@ public partial class MainWindow : Window
         if (App.Settings.CheckForUpdates)
         {
             _ = CheckForUpdatesAsync(interactive: false);
+        }
+
+        // En una instalación para todo el equipo, el instalador registra mdViewer con su propia cuenta;
+        // repetirlo aquí garantiza que cada usuario lo vea en "Abrir con". Es idempotente y no bloquea.
+        if (_updates.IsInstalled)
+        {
+            _ = Task.Run(FileAssociation.TryRegisterForCurrentUser);
         }
     }
 

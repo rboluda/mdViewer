@@ -56,11 +56,14 @@ jobs:
         continue-on-error: true
         run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
 
+      # Genera mdViewer-win.msi (instala en Archivos de programa para todo el equipo) y,
+      # además, mdViewer-win-Setup.exe (instalación por usuario, sin permisos de administrador).
       - name: Empaquetar
         run: >
           vpk pack --packId mdViewer --packVersion ${{ steps.version.outputs.value }}
           --packDir publish --mainExe mdViewer.exe --packTitle mdViewer --packAuthors "mdViewer contributors"
           --icon src/MdViewer.App/Assets/mdViewer.ico
+          --msi --instLocation PerMachine
 
       - name: Subir a GitHub Releases
         run: >
