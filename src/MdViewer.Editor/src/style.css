@@ -378,3 +378,26 @@ body {
 .mdv-line-numbers .vditor-content:has(> .mdv-splitter) > .vditor-sv {
   padding-left: 68px !important;
 }
+
+/* ── Bloques de código: botón de ajuste de línea (junto al de copiar) ── */
+.vditor-copy .mdv-wrap-button {
+  right: 38px !important;
+}
+
+.vditor-copy .mdv-wrap-button svg {
+  opacity: 0.75;
+}
+
+.vditor-copy .mdv-wrap-button.mdv-wrap-on svg {
+  color: var(--accent) !important;
+  opacity: 1;
+}
+
+/* Con el ajuste activado, las líneas largas se parten en lugar de desplazarse en horizontal */
+.mdv-code-wrap .vditor-reset pre > code,
+.mdv-code-wrap .vditor-ir__marker--pre code {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-x: hidden !important;
+}

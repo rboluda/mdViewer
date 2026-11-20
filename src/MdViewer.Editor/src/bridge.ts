@@ -27,6 +27,7 @@ export type HostMessage =
   | { type: "image"; name: string; data: string }
   | { type: "export"; id: string; html: string }
   | { type: "status"; text: string }
+  | { type: "copy"; text: string }
   | { type: "error"; message: string };
 
 interface WebViewHost {

@@ -7,6 +7,7 @@ import * as search from "./search";
 import * as modes from "./modes";
 import * as outline from "./outline";
 import * as split from "./split";
+import * as codeblocks from "./codeblocks";
 
 // Vditor carga sus módulos (lute, katex, mermaid, highlight.js…) bajo demanda desde `cdn`.
 // Apuntamos a la copia local para funcionar sin conexión.
@@ -250,7 +251,7 @@ function create(markdown: string): void {
       mode: splitMode ? "both" : "editor",
       actions: [], // sin la barra "Desktop / Tablet / Mobile" de la vista previa
       theme: { current: contentTheme() },
-      hljs: { style: codeTheme(), lineNumber: false },
+      hljs: { style: codeTheme(), lineNumber: false, renderMenu: codeblocks.renderCodeMenu },
       markdown: { toc: true, mark: true, footnotes: true, autoSpace: false, sup: true, sub: true },
       math: { inlineDigit: false, engine: "KaTeX" },
     },
@@ -468,6 +469,7 @@ commands.onChanged(() => {
 });
 modes.install();
 modes.installKeyFilter();
+codeblocks.install();
 
 // Título activo del índice al desplazarse.
 let scrollTimer = 0;

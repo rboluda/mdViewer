@@ -65,6 +65,9 @@ public sealed class EditorBridge
     /// <summary>Texto para la barra de estado enviado por el editor (p. ej. zoom con Ctrl+rueda).</summary>
     public event EventHandler<string>? StatusMessage;
 
+    /// <summary>El editor pide copiar un texto al portapapeles (botón de copiar de los bloques de código).</summary>
+    public event EventHandler<string>? CopyRequested;
+
     /// <summary>Se ha pegado o arrastrado una imagen: nombre y contenido.</summary>
     public event EventHandler<(string Name, byte[] Data)>? ImageReceived;
 
@@ -325,6 +328,9 @@ public sealed class EditorBridge
                         completion.TrySetResult(root.GetProperty("html").GetString() ?? string.Empty);
                     }
 
+                    break;
+                case "copy":
+                    CopyRequested?.Invoke(this, root.GetProperty("text").GetString() ?? string.Empty);
                     break;
                 case "status":
                     StatusMessage?.Invoke(this, root.GetProperty("text").GetString() ?? string.Empty);

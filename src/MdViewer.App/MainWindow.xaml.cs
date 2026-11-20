@@ -67,6 +67,11 @@ public partial class MainWindow : Window
         _editor.OutlineChanged += (_, items) => SidebarPanel.SetOutline(items);
         _editor.ActiveHeadingChanged += (_, index) => SidebarPanel.SetActiveHeading(index);
         _editor.StatusMessage += (_, text) => StatusText.Text = text;
+        _editor.CopyRequested += (_, text) =>
+        {
+            SafeClipboard.SetText(text);
+            StatusText.Text = "Código copiado al portapapeles";
+        };
         _editor.ImageReceived += async (_, image) => await InsertImageDataAsync(image.Name, image.Data);
         FindBarPanel.Attach(_editor);
 
