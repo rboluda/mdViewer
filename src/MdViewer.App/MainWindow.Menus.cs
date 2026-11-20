@@ -324,10 +324,11 @@ public partial class MainWindow
     {
         var item = new MenuItem
         {
-            Header = new AccessText { Text = header, Foreground = (System.Windows.Media.Brush)FindResource("ChromeForegroundBrush") },
+            Header = new AccessText { Text = header },
+            Padding = new Thickness(7, 2, 7, 2),
+            Foreground = SystemColors.MenuTextBrush,
         };
-        item.SetResourceReference(MenuItem.ForegroundProperty, "SidebarForegroundBrush");
-        ((AccessText)item.Header).SetResourceReference(TextBlock.ForegroundProperty, "ChromeForegroundBrush");
+                ((AccessText)item.Header).SetResourceReference(TextBlock.ForegroundProperty, "MenuBarForegroundBrush");
         AutomationProperties.SetName(item, header.Replace("_", string.Empty, StringComparison.Ordinal));
         item.SubmenuOpened += (_, _) => RefreshChecks();
         MainMenu.Items.Add(item);

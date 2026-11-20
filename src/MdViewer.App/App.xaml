@@ -1,12 +1,14 @@
 ﻿<Application x:Class="MdViewer.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             ThemeMode="Light"
              ShutdownMode="OnLastWindowClose">
+    <!-- Estilo clásico y compacto de WPF (sin ThemeMode/Fluent). -->
     <Application.Resources>
         <!-- Valores iniciales del tema azul; ThemeManager los sustituye al cambiar de tema -->
         <SolidColorBrush x:Key="ChromeBackgroundBrush" Color="#006EE8" />
         <SolidColorBrush x:Key="ChromeForegroundBrush" Color="White" />
+        <SolidColorBrush x:Key="MenuBarBackgroundBrush" Color="#EEF4FC" />
+        <SolidColorBrush x:Key="MenuBarForegroundBrush" Color="#1C2733" />
         <SolidColorBrush x:Key="DocumentBackgroundBrush" Color="White" />
         <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="#F4F8FE" />
         <SolidColorBrush x:Key="SidebarForegroundBrush" Color="#1C2733" />

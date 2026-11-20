@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:controls="clr-namespace:MdViewer.App.Controls"
-        Title="mdViewer" Width="1180" Height="780" MinWidth="520" MinHeight="340"
+        Title="mdViewer" Width="1180" Height="780" MinWidth="520" MinHeight="340" FontSize="12"
         WindowStartupLocation="CenterScreen"
         Icon="Assets/mdViewer.ico"
         Background="{DynamicResource DocumentBackgroundBrush}"
@@ -11,17 +11,17 @@
 
     <DockPanel>
         <!-- El contenido de los menús se construye en MainWindow.Menus.cs -->
-        <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ChromeBackgroundBrush}" Padding="4,2" />
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource MenuBarBackgroundBrush}" Padding="2,1" BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,0,0,1" />
 
         <StatusBar x:Name="StatusBarPanel" DockPanel.Dock="Bottom" Background="{DynamicResource ChromeBackgroundBrush}"
-                   TextElement.Foreground="{DynamicResource ChromeForegroundBrush}" Padding="6,0">
+                   TextElement.Foreground="{DynamicResource ChromeForegroundBrush}" Padding="2,0" Height="22">
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="SidebarToggleButton" Content="☰" ToolTip="Mostrar u ocultar la barra lateral (Ctrl+Mayús+L)"
-                            Padding="6,0" Margin="0,0,8,0" Background="Transparent" BorderThickness="0"
+                            Padding="4,0" Margin="0,0,4,0" Background="Transparent" BorderThickness="0"
                             Foreground="{DynamicResource ChromeForegroundBrush}" Click="OnSidebarToggleClick" />
                     <Button x:Name="ModeToggleButton" Content="&lt;/&gt;" ToolTip="Modo código fuente (Ctrl+/)"
-                            Padding="6,0" Margin="0,0,12,0" Background="Transparent" BorderThickness="0"
+                            Padding="4,0" Margin="0,0,8,0" Background="Transparent" BorderThickness="0"
                             Foreground="{DynamicResource ChromeForegroundBrush}" Click="OnModeToggleClick" />
                     <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{DynamicResource ChromeForegroundBrush}" />
                 </StackPanel>
@@ -41,7 +41,7 @@
 
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="260" MinWidth="0" />
+                <ColumnDefinition x:Name="SidebarColumn" Width="220" MinWidth="0" />
                 <ColumnDefinition x:Name="SplitterColumn" Width="4" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>

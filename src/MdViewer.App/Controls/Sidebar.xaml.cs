@@ -264,10 +264,10 @@ public partial class Sidebar : UserControl
     private static ListBoxItem CreateArticleItem(FileInfo file)
     {
         var (title, excerpt) = MarkdownFiles.Summary(file.FullName);
-        var panel = new StackPanel { Margin = new Thickness(6, 6, 6, 8) };
+        var panel = new StackPanel { Margin = new Thickness(3, 3, 3, 4) };
         panel.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
-        panel.Children.Add(new TextBlock { Text = excerpt, Opacity = 0.75, TextWrapping = TextWrapping.Wrap, MaxHeight = 36, FontSize = 12 });
-        panel.Children.Add(new TextBlock { Text = $"{file.Name} · {file.LastWriteTime:g}", Opacity = 0.55, FontSize = 11, Margin = new Thickness(0, 2, 0, 0) });
+        panel.Children.Add(new TextBlock { Text = excerpt, Opacity = 0.75, TextWrapping = TextWrapping.Wrap, MaxHeight = 30, FontSize = 11 });
+        panel.Children.Add(new TextBlock { Text = $"{file.Name} · {file.LastWriteTime:g}", Opacity = 0.55, FontSize = 10, Margin = new Thickness(0, 1, 0, 0) });
         var item = new ListBoxItem { Content = panel, Tag = file.FullName, ToolTip = file.FullName };
         System.Windows.Automation.AutomationProperties.SetName(item, title);
         return item;
@@ -359,7 +359,15 @@ public partial class Sidebar : UserControl
         {
             var active = item.Tag is int i && i == index;
             item.FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
-            item.Background = active ? (Brush)FindResource("SidebarHoverBrush") : Brushes.Transparent;
+            if (active)
+            {
+                // Referencia dinámica: el color sigue al tema si se cambia después.
+                item.SetResourceReference(BackgroundProperty, "SidebarHoverBrush");
+            }
+            else
+            {
+                item.Background = Brushes.Transparent;
+            }
         }
     }
 
@@ -380,8 +388,8 @@ public partial class Sidebar : UserControl
             {
                 Content = new TextBlock { Text = heading.Text, TextTrimming = TextTrimming.CharacterEllipsis },
                 Tag = i,
-                Padding = new Thickness(10 + ((heading.Level - minLevel) * 16), 4, 8, 4),
-                FontSize = heading.Level == minLevel ? 13.5 : 13,
+                Padding = new Thickness(8 + ((heading.Level - minLevel) * 14), 1, 6, 1),
+                FontSize = 12,
                 ToolTip = heading.Text,
             });
         }
@@ -453,11 +461,11 @@ public partial class Sidebar : UserControl
                 {
                     Content = new TextBlock { Text = $"{Path.GetRelativePath(folder, group.Key)}  ({group.Count()})", FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
                     Tag = group.Key,
-                    Margin = new Thickness(0, 6, 0, 0),
+                    Margin = new Thickness(0, 3, 0, 0),
                 });
                 foreach (var hit in group.Take(50))
                 {
-                    var text = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(14, 0, 0, 0), FontSize = 12 };
+                    var text = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(10, 0, 0, 0), FontSize = 11 };
                     var start = Math.Clamp(hit.MatchStart, 0, hit.LineText.Length);
                     var length = Math.Clamp(hit.MatchLength, 0, hit.LineText.Length - start);
                     text.Inlines.Add(new System.Windows.Documents.Run($"{hit.LineNumber}: ") { Foreground = Brushes.Gray });

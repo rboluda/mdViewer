@@ -78,7 +78,7 @@ public sealed class AppSettings
     // ── Ventana ──
     public bool SidebarVisible { get; set; } = true;
 
-    public double SidebarWidth { get; set; } = 260;
+    public double SidebarWidth { get; set; } = 220;
 
     public SidebarTab SidebarTab { get; set; } = SidebarTab.Outline;
 

@@ -31,7 +31,17 @@ public static partial class ThemeManager
     public static void Apply(Window window, AppTheme theme)
     {
         var dark = EditorTheme(theme) == "dark";
-        Application.Current.ThemeMode = dark ? ThemeMode.Dark : ThemeMode.Light;
+
+        // Se usa el estilo clásico de WPF (sin el tema Fluent de Windows 11): menús, botones y
+        // listas mucho más compactos, que en la pantalla de un portátil dejan sitio al documento.
+        // La barra de menús es clara, como en las aplicaciones clásicas de Windows; los menús
+        // desplegables clásicos siempre son claros, así que su texto es siempre oscuro.
+        var (menuBack, menuFore) = theme switch
+        {
+            AppTheme.Blue => (Color.FromRgb(0xEE, 0xF4, 0xFC), Color.FromRgb(0x1C, 0x27, 0x33)),
+            _ when dark => (Color.FromRgb(0x2B, 0x2B, 0x2B), Color.FromRgb(0xF0, 0xF0, 0xF0)),
+            _ => (Color.FromRgb(0xF3, 0xF3, 0xF3), Color.FromRgb(0x1B, 0x1B, 0x1B)),
+        };
 
         var (chromeBack, chromeFore) = theme switch
         {
@@ -44,6 +54,8 @@ public static partial class ThemeManager
         resources["ChromeBackgroundBrush"] = Freeze(new SolidColorBrush(chromeBack));
         resources["ChromeForegroundBrush"] = Freeze(new SolidColorBrush(chromeFore));
         resources["DocumentBackgroundBrush"] = Freeze(new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x1E, 0x1E) : Colors.White));
+        resources["MenuBarBackgroundBrush"] = Freeze(new SolidColorBrush(menuBack));
+        resources["MenuBarForegroundBrush"] = Freeze(new SolidColorBrush(menuFore));
 
         // Barra lateral y barra de búsqueda
         var (sideBack, sideFore, sideBorder, sideHover, accent) = theme switch

@@ -17,7 +17,7 @@ public class DialogBase : Window
         ShowInTaskbar = false;
         ResizeMode = ResizeMode.NoResize;
         Icon = owner?.Icon;
-        FontSize = 13;
+        FontSize = 12;
         Background = (System.Windows.Media.Brush)Application.Current.Resources["DocumentBackgroundBrush"];
         PreviewKeyDown += (_, e) =>
         {
@@ -45,12 +45,12 @@ public class DialogBase : Window
 
     protected static StackPanel Buttons(params Button[] buttons)
     {
-        var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
         foreach (var b in buttons)
         {
-            b.MinWidth = 90;
+            b.MinWidth = 80;
             b.Margin = new Thickness(8, 0, 0, 0);
-            b.Padding = new Thickness(12, 4, 12, 4);
+            b.Padding = new Thickness(10, 2, 10, 2);
             panel.Children.Add(b);
         }
 
