@@ -68,10 +68,10 @@ body {
   background: var(--page-bg) !important;
 }
 
+/* La columna de texto se centra con relleno lateral: así el área desplazable ocupa todo el
+   ancho y la barra de desplazamiento queda pegada al borde de la ventana. */
 .vditor-reset {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 48px 40px 30vh !important;
+  padding: 48px max(40px, calc((100% - 860px) / 2)) 30vh !important;
   font-size: 16px;
   line-height: 1.7;
   color: var(--page-fg) !important;
@@ -165,4 +165,73 @@ body {
 :root[data-theme="blue"] .language-mermaid marker path {
   fill: var(--accent-strong) !important;
   stroke: var(--accent-strong) !important;
+}
+
+/* ── Buscar: coincidencias resaltadas (API de resaltado de CSS) ── */
+::highlight(mdv-find) {
+  background-color: #ffe58a;
+  color: inherit;
+}
+
+::highlight(mdv-find-current) {
+  background-color: #ff9d3c;
+  color: #000;
+}
+
+/* ── Modo concentración: se atenúa todo salvo el bloque donde se escribe ── */
+.mdv-focus .vditor-reset > * {
+  opacity: 0.28;
+  transition: opacity 0.15s ease;
+}
+
+.mdv-focus .vditor-reset > .mdv-active {
+  opacity: 1;
+}
+
+/* ── Modo máquina de escribir: hueco arriba y abajo para poder centrar cualquier línea ── */
+.mdv-typewriter .vditor-reset {
+  padding-top: 45vh !important;
+  padding-bottom: 50vh !important;
+}
+
+/* ── Solo lectura ── */
+.mdv-readonly .vditor-reset {
+  caret-color: transparent;
+}
+
+/* ── Avisos tipo GitHub: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION] ── */
+.vditor-reset blockquote.mdv-alert {
+  border-left-width: 4px !important;
+  border-radius: 0 6px 6px 0;
+}
+
+.vditor-reset blockquote.mdv-alert-note { border-left-color: #0969da !important; background: #ddf4ff !important; }
+.vditor-reset blockquote.mdv-alert-tip { border-left-color: #1a7f37 !important; background: #dafbe1 !important; }
+.vditor-reset blockquote.mdv-alert-important { border-left-color: #8250df !important; background: #fbefff !important; }
+.vditor-reset blockquote.mdv-alert-warning { border-left-color: #9a6700 !important; background: #fff8c5 !important; }
+.vditor-reset blockquote.mdv-alert-caution { border-left-color: #cf222e !important; background: #ffebe9 !important; }
+
+:root[data-theme="dark"] .vditor-reset blockquote.mdv-alert { background: #262c36 !important; }
+
+/* ── Modo código fuente y pantalla partida ── */
+.vditor-sv {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace !important;
+  font-size: 14px !important;
+  line-height: 1.7 !important;
+  padding: 32px max(32px, calc((100% - 900px) / 2)) 30vh !important;
+}
+
+.vditor-sv .vditor-sv__marker--heading,
+.vditor-sv .vditor-sv__marker--bi,
+.vditor-sv .vditor-sv__marker--strike,
+.vditor-sv .vditor-sv__marker--link {
+  color: var(--accent) !important;
+}
+
+.vditor-preview {
+  border-left: 1px solid var(--border);
+}
+
+.vditor-preview .vditor-reset {
+  padding: 32px !important;
 }

@@ -8,7 +8,7 @@
     <Deterministic>true</Deterministic>
 
     <!-- La versión real la inyecta el pipeline de release con -p:Version=x.y.z -->
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Company>mdViewer</Company>
     <Product>mdViewer</Product>
     <Copyright>Copyright © mdViewer contributors</Copyright>

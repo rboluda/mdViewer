@@ -2,12 +2,26 @@
 
 Editor Markdown **libre y de código abierto** para Windows, con edición en vivo: el Markdown se renderiza mientras escribes, sin panel de vista previa aparte.
 
-> Estado: **esqueleto inicial (0.1)**. Ya abre, edita y guarda archivos `.md` con edición en vivo, modo código fuente, temas claro/oscuro, recuperación de borradores y autoactualización.
+## Características
 
-## Características actuales
+**Escribir**
+- Edición en vivo (la sintaxis aparece al situar el cursor), modo código fuente (`Ctrl+ç` o `Ctrl+/`) y pantalla partida con el código y el resultado.
+- Menús completos de Párrafo y Formato con atajos: títulos (`Ctrl+1…6`), listas, tareas, citas, avisos tipo GitHub, tablas (insertar, filas, columnas, alineación), bloques de código y de fórmula, notas al pie, enlaces por referencia, índice `[toc]`, metadatos YAML, negrita, cursiva, subrayado, tachado, código, comentarios, borrar formato…
+- Mover bloques y filas de tabla (`Alt+↑/↓`), seleccionar palabra, línea o bloque, copiar como Markdown, HTML o texto, pegar sin formato.
+- Modo concentración (`F8`), máquina de escribir (`F9`), solo lectura, puntuación tipográfica, cierre automático de paréntesis y corrector ortográfico.
+- Tablas, listas de tareas, notas al pie, matemáticas (KaTeX), diagramas Mermaid y resaltado de código.
 
-- Edición en vivo estilo "renderizado instantáneo" y modo código fuente (`Ctrl+/`).
-- Tablas, listas de tareas, notas al pie, `[toc]`, matemáticas (KaTeX), diagramas Mermaid, resaltado de código.
+**Organizar y encontrar**
+- Barra lateral (`Ctrl+Mayús+L`) con índice del documento, árbol de archivos o lista de documentos de la carpeta, y búsqueda en toda la carpeta (`Ctrl+Mayús+F`).
+- Buscar y reemplazar en el documento con expresiones regulares (`Ctrl+F`, `Ctrl+H`), apertura rápida de archivos (`Ctrl+P`), varias ventanas (`Ctrl+Mayús+N`, `Ctrl+Tab`).
+- Imágenes: pegar, arrastrar o insertar (se copian a `./assets` o a la carpeta que elijas), rutas relativas, mover o copiar todas, descargar las de internet.
+
+**Compartir**
+- Exportar a PDF, HTML, HTML sin estilos e imagen PNG, e imprimir.
+- Con [Pandoc](https://pandoc.org) instalado: exportar a Word, ODT, RTF, EPUB, LaTeX, MediaWiki, reStructuredText, Textile y OPML, e importar documentos.
+
+**Archivos**
+- Reabrir con otra codificación, recargar desde disco, mover, guardar todo, propiedades, mostrar en el Explorador, enviar a la papelera, recientes (archivos y carpetas).
 - Guardado atómico: un corte de luz nunca deja un archivo a medias.
 - Respeta la codificación (UTF-8, UTF-8 con BOM, UTF-16, ANSI) y los saltos de línea originales.
 - Borradores de recuperación cada 30 s y aviso al reabrir tras un cierre inesperado.

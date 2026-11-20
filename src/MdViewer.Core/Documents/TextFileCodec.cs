@@ -73,6 +73,22 @@ public static class TextFileCodec
         return new TextFileContent(NormalizeNewLines(text), new TextFormat(encoding, hasBom, lineEnding));
     }
 
+    /// <summary>Decodifica con una codificación elegida por el usuario (menú "Reabrir con codificación").</summary>
+    public static TextFileContent DecodeWith(ReadOnlySpan<byte> bytes, Encoding encoding)
+    {
+        ArgumentNullException.ThrowIfNull(encoding);
+        var preamble = encoding.GetPreamble();
+        var hasBom = preamble.Length > 0 && bytes.StartsWith(preamble);
+        var text = encoding.GetString(hasBom ? bytes[preamble.Length..] : bytes);
+        var plain = encoding switch
+        {
+            UTF8Encoding => new UTF8Encoding(false),
+            UnicodeEncoding u => new UnicodeEncoding(u.CodePage == 1201, byteOrderMark: false),
+            _ => encoding,
+        };
+        return new TextFileContent(NormalizeNewLines(text), new TextFormat(plain, hasBom, DetectLineEnding(text)));
+    }
+
     public static byte[] Encode(string text, TextFormat format)
     {
         ArgumentNullException.ThrowIfNull(text);

@@ -2,12 +2,18 @@
  * Puente entre el editor (JS) y la aplicación (C#).
  *
  * JS → C#: mensajes JSON con window.chrome.webview.postMessage.
- * C# → JS: llamadas a window.mdEditor.* con ExecuteScriptAsync.
+ * C# → JS: llamadas a window.mdEditor.* con ExecuteScriptAsync (deben ser síncronas;
+ *          los resultados asíncronos se devuelven con un mensaje).
  *
  * Mantener sincronizado con src/MdViewer.App/Editor/EditorBridge.cs.
  */
+import type { FindOptions, FindResult } from "./search";
+import type { OutlineItem, Stats } from "./outline";
+import type { WritingOptions } from "./modes";
 
-export type EditorMode = "ir" | "sv" | "wysiwyg";
+/** "ir": edición en vivo · "sv": código fuente · "split": código fuente con vista previa al lado. */
+export type EditorMode = "ir" | "sv" | "split";
+
 /** "blue" es el tema de la marca (azul y blanco) y el predeterminado. */
 export type EditorTheme = "blue" | "light" | "dark";
 
@@ -15,7 +21,11 @@ export type HostMessage =
   | { type: "ready" }
   | { type: "changed" }
   | { type: "openLink"; href: string }
-  | { type: "stats"; characters: number }
+  | { type: "stats"; stats: Stats }
+  | { type: "outline"; items: OutlineItem[] }
+  | { type: "activeHeading"; index: number }
+  | { type: "image"; name: string; data: string }
+  | { type: "export"; id: string; html: string }
   | { type: "error"; message: string };
 
 interface WebViewHost {
@@ -34,15 +44,40 @@ export interface LoadOptions {
   mode?: EditorMode;
   /** URL base para imágenes y enlaces relativos (host virtual de la carpeta del documento). */
   baseUrl?: string | null;
+  writing?: Partial<WritingOptions>;
+  readonly?: boolean;
+  toolbar?: boolean;
 }
 
-/** API que C# invoca. Todos los métodos son síncronos o devuelven valores serializables. */
+/** API que C# invoca. */
 export interface EditorApi {
   load(markdown: string, options?: LoadOptions): void;
   getMarkdown(): string;
+  setValue(markdown: string): void;
   setTheme(theme: EditorTheme): void;
   setMode(mode: EditorMode): void;
   focus(): void;
+  exec(command: string, arg?: string): void;
+  selectionMarkdown(): string;
+  selectionText(): string;
+  selectionHtml(): string;
+  markdownToHtml(md: string): string;
+  linkAtCursor(): string;
+  imageAtCursor(): string;
+  codeAtCursor(): string;
+  paste(text: string, html: string | null): void;
+  insertText(text: string): void;
+  insertMarkdown(md: string): void;
+  find(query: string, options?: FindOptions): FindResult;
+  findStep(direction: 1 | -1): FindResult;
+  findClear(): void;
+  replaceCurrent(replacement: string): void;
+  replaceAll(replacement: string): number;
+  scrollToHeading(index: number): void;
+  setWriting(options: Partial<WritingOptions>): void;
+  setReadonly(readonly: boolean): void;
+  setToolbar(visible: boolean): void;
+  renderExport(id: string): void;
 }
 
 export function postToHost(message: HostMessage): void {

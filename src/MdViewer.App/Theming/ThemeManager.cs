@@ -45,6 +45,19 @@ public static partial class ThemeManager
         resources["ChromeForegroundBrush"] = Freeze(new SolidColorBrush(chromeFore));
         resources["DocumentBackgroundBrush"] = Freeze(new SolidColorBrush(dark ? Color.FromRgb(0x1E, 0x1E, 0x1E) : Colors.White));
 
+        // Barra lateral y barra de búsqueda
+        var (sideBack, sideFore, sideBorder, sideHover, accent) = theme switch
+        {
+            AppTheme.Blue => (Color.FromRgb(0xF4, 0xF8, 0xFE), Color.FromRgb(0x1C, 0x27, 0x33), Color.FromRgb(0xD6, 0xE4, 0xF7), Color.FromRgb(0xE3, 0xEE, 0xFD), BrandBlue),
+            _ when dark => (Color.FromRgb(0x25, 0x25, 0x26), Color.FromRgb(0xE0, 0xE0, 0xE0), Color.FromRgb(0x3A, 0x3A, 0x3A), Color.FromRgb(0x33, 0x3A, 0x45), Color.FromRgb(0x4E, 0xA1, 0xFF)),
+            _ => (Color.FromRgb(0xF7, 0xF7, 0xF7), Color.FromRgb(0x24, 0x29, 0x2F), Color.FromRgb(0xE1, 0xE1, 0xE1), Color.FromRgb(0xEA, 0xEA, 0xEA), Color.FromRgb(0x09, 0x69, 0xDA)),
+        };
+        resources["SidebarBackgroundBrush"] = Freeze(new SolidColorBrush(sideBack));
+        resources["SidebarForegroundBrush"] = Freeze(new SolidColorBrush(sideFore));
+        resources["SidebarBorderBrush"] = Freeze(new SolidColorBrush(sideBorder));
+        resources["SidebarHoverBrush"] = Freeze(new SolidColorBrush(sideHover));
+        resources["AccentBrush"] = Freeze(new SolidColorBrush(accent));
+
         ApplyTitleBar(window, theme == AppTheme.Blue ? chromeBack : null, theme == AppTheme.Blue ? chromeFore : null);
     }
 

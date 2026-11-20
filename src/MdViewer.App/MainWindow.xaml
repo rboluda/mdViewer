@@ -2,85 +2,67 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        Title="mdViewer" Width="1100" Height="760" MinWidth="480" MinHeight="320"
+        xmlns:controls="clr-namespace:MdViewer.App.Controls"
+        Title="mdViewer" Width="1180" Height="780" MinWidth="520" MinHeight="340"
         WindowStartupLocation="CenterScreen"
         Icon="Assets/mdViewer.ico"
         Background="{DynamicResource DocumentBackgroundBrush}"
         AllowDrop="True">
 
-    <Window.CommandBindings>
-        <CommandBinding Command="New" Executed="OnNew" />
-        <CommandBinding Command="Open" Executed="OnOpen" />
-        <CommandBinding Command="Save" Executed="OnSave" />
-        <CommandBinding Command="SaveAs" Executed="OnSaveAs" />
-        <CommandBinding Command="Close" Executed="OnExit" />
-    </Window.CommandBindings>
-
-    <Window.InputBindings>
-        <KeyBinding Command="SaveAs" Key="S" Modifiers="Ctrl+Shift" />
-        <KeyBinding Command="Close" Key="W" Modifiers="Ctrl" />
-    </Window.InputBindings>
-
     <DockPanel>
-        <!-- Los títulos del menú principal usan AccessText con el color del marco: así el color
-             no se hereda a los submenús, que se dibujan sobre fondo claro u oscuro según el tema. -->
-        <Menu DockPanel.Dock="Top" Background="{DynamicResource ChromeBackgroundBrush}" Padding="4,2">
-            <MenuItem AutomationProperties.Name="Archivo">
-                <MenuItem.Header>
-                    <AccessText Text="_Archivo" Foreground="{DynamicResource ChromeForegroundBrush}" />
-                </MenuItem.Header>
-                <MenuItem Header="_Nuevo" Command="New" InputGestureText="Ctrl+N" />
-                <MenuItem Header="_Abrir…" Command="Open" InputGestureText="Ctrl+O" />
-                <MenuItem x:Name="RecentMenu" Header="Abrir _reciente" />
-                <Separator />
-                <MenuItem Header="_Guardar" Command="Save" InputGestureText="Ctrl+S" />
-                <MenuItem Header="Guardar _como…" Command="SaveAs" InputGestureText="Ctrl+Shift+S" />
-                <Separator />
-                <MenuItem Header="_Salir" Command="Close" />
-            </MenuItem>
-            <MenuItem AutomationProperties.Name="Ver">
-                <MenuItem.Header>
-                    <AccessText Text="_Ver" Foreground="{DynamicResource ChromeForegroundBrush}" />
-                </MenuItem.Header>
-                <MenuItem x:Name="SourceModeMenu" Header="Modo _código fuente" IsCheckable="True"
-                          InputGestureText="Ctrl+/" Click="OnToggleSourceMode" />
-                <Separator />
-                <MenuItem Header="_Tema">
-                    <MenuItem x:Name="ThemeBlueMenu" Header="_Azul (predeterminado)" IsCheckable="True" Tag="Blue" Click="OnThemeSelected" />
-                    <MenuItem x:Name="ThemeLightMenu" Header="_Claro" IsCheckable="True" Tag="Light" Click="OnThemeSelected" />
-                    <MenuItem x:Name="ThemeDarkMenu" Header="_Oscuro" IsCheckable="True" Tag="Dark" Click="OnThemeSelected" />
-                    <MenuItem x:Name="ThemeSystemMenu" Header="Según el _sistema" IsCheckable="True" Tag="System" Click="OnThemeSelected" />
-                </MenuItem>
-            </MenuItem>
-            <MenuItem AutomationProperties.Name="Ayuda">
-                <MenuItem.Header>
-                    <AccessText Text="Ay_uda" Foreground="{DynamicResource ChromeForegroundBrush}" />
-                </MenuItem.Header>
-                <MenuItem Header="Buscar _actualizaciones" Click="OnCheckUpdates" />
-                <MenuItem Header="Abrir carpeta de _registros" Click="OnOpenLogs" />
-                <Separator />
-                <MenuItem Header="Acerca _de mdViewer" Click="OnAbout" />
-            </MenuItem>
-        </Menu>
+        <!-- El contenido de los menús se construye en MainWindow.Menus.cs -->
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="{DynamicResource ChromeBackgroundBrush}" Padding="4,2" />
 
-        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource ChromeBackgroundBrush}"
+        <StatusBar x:Name="StatusBarPanel" DockPanel.Dock="Bottom" Background="{DynamicResource ChromeBackgroundBrush}"
                    TextElement.Foreground="{DynamicResource ChromeForegroundBrush}" Padding="6,0">
             <StatusBarItem>
-                <TextBlock x:Name="StatusText" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="SidebarToggleButton" Content="☰" ToolTip="Mostrar u ocultar la barra lateral (Ctrl+Mayús+L)"
+                            Padding="6,0" Margin="0,0,8,0" Background="Transparent" BorderThickness="0"
+                            Foreground="{DynamicResource ChromeForegroundBrush}" Click="OnSidebarToggleClick" />
+                    <Button x:Name="ModeToggleButton" Content="&lt;/&gt;" ToolTip="Modo código fuente (Ctrl+/)"
+                            Padding="6,0" Margin="0,0,12,0" Background="Transparent" BorderThickness="0"
+                            Foreground="{DynamicResource ChromeForegroundBrush}" Click="OnModeToggleClick" />
+                    <TextBlock x:Name="StatusText" VerticalAlignment="Center" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                </StackPanel>
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
-                    <Button x:Name="UpdateButton" Visibility="Collapsed" Padding="8,0" Margin="0,0,12,0"
-                            Click="OnApplyUpdate" />
-                    <TextBlock x:Name="StatsText" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                    <TextBlock x:Name="ReadonlyText" Text="Solo lectura" Margin="0,0,12,0" Visibility="Collapsed"
+                               VerticalAlignment="Center" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                    <Button x:Name="UpdateButton" Visibility="Collapsed" Padding="8,0" Margin="0,0,12,0" Click="OnApplyUpdate" />
+                    <Button x:Name="StatsButton" Background="Transparent" BorderThickness="0" Padding="6,0"
+                            ToolTip="Recuento de palabras" Click="OnStatsClick">
+                        <TextBlock x:Name="StatsText" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                    </Button>
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
 
         <Grid>
-            <wv2:WebView2 x:Name="EditorView" DefaultBackgroundColor="Transparent" />
-            <TextBlock x:Name="LoadingText" Text="Cargando editor…" HorizontalAlignment="Center"
-                       VerticalAlignment="Center" Opacity="0.6" TextAlignment="Center" />
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="260" MinWidth="0" />
+                <ColumnDefinition x:Name="SplitterColumn" Width="4" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <controls:Sidebar x:Name="SidebarPanel" Grid.Column="0" />
+            <GridSplitter x:Name="SidebarSplitter" Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                          Background="{DynamicResource SidebarBorderBrush}" ResizeBehavior="PreviousAndNext"
+                          DragCompleted="OnSidebarResized" />
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <controls:FindBar x:Name="FindBarPanel" Grid.Row="0" Visibility="Collapsed" />
+
+                <wv2:WebView2 x:Name="EditorView" Grid.Row="1" DefaultBackgroundColor="Transparent" />
+                <TextBlock x:Name="LoadingText" Grid.Row="1" Text="Cargando editor…" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" Opacity="0.6" TextAlignment="Center" />
+            </Grid>
         </Grid>
     </DockPanel>
 </Window>

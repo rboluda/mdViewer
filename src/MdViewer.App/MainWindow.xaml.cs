@@ -2,8 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Threading;
 using MdViewer.App.Editor;
 using MdViewer.App.Integration;
@@ -11,16 +9,24 @@ using MdViewer.App.Theming;
 using MdViewer.App.Updates;
 using MdViewer.Core.Diagnostics;
 using MdViewer.Core.Documents;
+using MdViewer.Core.Files;
 using MdViewer.Core.Recovery;
 using MdViewer.Core.Settings;
 using Microsoft.Win32;
-using AppTheme = MdViewer.Core.Settings.ThemeMode;
 
 namespace MdViewer.App;
 
+/// <summary>
+/// Ventana principal. Repartida en varios archivos:
+/// MainWindow.xaml.cs (documento y ciclo de vida), MainWindow.Menus.cs (menús y atajos),
+/// MainWindow.Commands.cs (acciones), MainWindow.Export.cs (exportar e imprimir) y MainWindow.Images.cs.
+/// </summary>
 public partial class MainWindow : Window
 {
-    private const string FileFilter = "Markdown (*.md;*.markdown;*.mdown;*.qmd)|*.md;*.markdown;*.mdown;*.qmd|Texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
+    private const string FileFilter = "Markdown (*.md;*.markdown;*.mdown;*.mkd;*.qmd)|*.md;*.markdown;*.mdown;*.mkd;*.qmd|Texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
+
+    /// <summary>Solo la primera ventana ofrece recuperar borradores.</summary>
+    private static bool _recoveryOffered;
 
     private readonly string? _initialFile;
     private readonly EditorBridge _editor;
@@ -28,11 +34,18 @@ public partial class MainWindow : Window
     private readonly RecoveryStore _recovery = new(App.Paths.RecoveryFolder);
     private readonly DispatcherTimer _recoveryTimer;
     private readonly DispatcherTimer _autoSaveTimer;
+    private readonly DispatcherTimer _dirtyCheckTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
 
     private MarkdownDocument _document = MarkdownDocument.CreateNew();
     private EditorMode _mode = EditorMode.Live;
+    private bool _readOnly;
+    private bool _focusMode;
+    private bool _typewriterMode;
     private bool _editorReady;
     private bool _editorChanged;
+    private bool _closingConfirmed;
+    private bool _checkingDisk;
+    private DocumentStats? _stats;
 
     // Texto del documento al cargarlo y cómo lo devuelve el editor justo después de cargarlo.
     // El editor puede normalizar el Markdown (espacios, saltos finales…); comparar con su propia
@@ -40,9 +53,6 @@ public partial class MainWindow : Window
     // permite guardar el texto original sin reformatearlo.
     private string _loadedText = string.Empty;
     private string _editorBaseline = string.Empty;
-    private readonly DispatcherTimer _dirtyCheckTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
-    private bool _closingConfirmed;
-    private bool _checkingDisk;
 
     public MainWindow(string? initialFile)
     {
@@ -52,8 +62,23 @@ public partial class MainWindow : Window
 
         _editor = new EditorBridge(EditorView);
         _editor.ContentChanged += (_, _) => OnEditorChanged();
-        _editor.StatsChanged += (_, chars) => StatsText.Text = $"{chars:N0} caracteres";
+        _editor.StatsChanged += (_, stats) => OnStatsChanged(stats);
         _editor.LinkActivated += (_, href) => OpenLink(href);
+        _editor.OutlineChanged += (_, items) => SidebarPanel.SetOutline(items);
+        _editor.ActiveHeadingChanged += (_, index) => SidebarPanel.SetActiveHeading(index);
+        _editor.ImageReceived += async (_, image) => await InsertImageDataAsync(image.Name, image.Data);
+        FindBarPanel.Attach(_editor);
+
+        SidebarPanel.FileOpenRequested += async (_, path) => await OpenFromSidebarAsync(path);
+        SidebarPanel.OpenFolderRequested += (_, _) => OpenFolderDialog();
+        SidebarPanel.HeadingRequested += async (_, index) => await _editor.ScrollToHeadingAsync(index);
+        SidebarPanel.TabChanged += (_, tab) => { App.Settings.SidebarTab = tab; App.SaveSettings(); };
+        SidebarPanel.FilesViewChanged += (_, view) => { App.Settings.FilesView = view; App.SaveSettings(); };
+        SidebarPanel.SearchResultActivated += async (_, r) =>
+        {
+            await OpenFromSidebarAsync(r.Path);
+            await FindBarPanel.SearchAsync(r.Query, r.CaseSensitive, r.Regex, r.WholeWord);
+        };
 
         _recoveryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Max(5, App.Settings.RecoveryIntervalSeconds)) };
         _recoveryTimer.Tick += async (_, _) => await SaveRecoveryDraftAsync();
@@ -68,13 +93,14 @@ public partial class MainWindow : Window
 
         Loaded += async (_, _) => await InitializeAsync();
         Activated += async (_, _) => await CheckExternalChangesAsync();
-        PreviewKeyDown += OnPreviewKeyDown;
         Drop += OnDrop;
 
-        UpdateThemeMenu();
-        RefreshRecentMenu();
+        BuildMenus();
+        ApplyViewSettings();
         UpdateTitle();
     }
+
+    private static IEnumerable<MainWindow> AllWindows => Application.Current.Windows.OfType<MainWindow>();
 
     // ───────────────────────── Arranque ─────────────────────────
 
@@ -84,6 +110,7 @@ public partial class MainWindow : Window
         {
             var editorFolder = Path.Combine(AppContext.BaseDirectory, "editor");
             await _editor.InitializeAsync(App.Paths.WebViewDataFolder, editorFolder);
+            _editor.ZoomFactor = App.Settings.Zoom;
             _editorReady = true;
             LoadingText.Visibility = Visibility.Collapsed;
         }
@@ -94,10 +121,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!await OfferRecoveryAsync())
+        var isFirstWindow = !_recoveryOffered;
+        if (!isFirstWindow || !await OfferRecoveryAsync())
         {
             var file = _initialFile;
-            if (file is null && App.Settings.ReopenLastFile)
+            if (file is null && isFirstWindow && App.Settings.ReopenLastFile)
             {
                 file = App.Settings.RecentFiles.FirstOrDefault(File.Exists);
             }
@@ -109,6 +137,10 @@ public partial class MainWindow : Window
             else
             {
                 await ShowDocumentAsync(MarkdownDocument.CreateNew());
+                if (SidebarPanel.Folder is null && isFirstWindow && App.Settings.RecentFolders.FirstOrDefault(Directory.Exists) is { } folder)
+                {
+                    SidebarPanel.SetFolder(folder);
+                }
             }
         }
 
@@ -118,21 +150,27 @@ public partial class MainWindow : Window
             _autoSaveTimer.Start();
         }
 
-        if (App.Settings.CheckForUpdates)
+        if (isFirstWindow && App.Settings.CheckForUpdates)
         {
             _ = CheckForUpdatesAsync(interactive: false);
         }
 
         // En una instalación para todo el equipo, el instalador registra mdViewer con su propia cuenta;
         // repetirlo aquí garantiza que cada usuario lo vea en "Abrir con". Es idempotente y no bloquea.
-        if (_updates.IsInstalled)
+        if (isFirstWindow && _updates.IsInstalled)
         {
             _ = Task.Run(FileAssociation.TryRegisterForCurrentUser);
+        }
+
+        if (isFirstWindow && !App.Settings.WelcomeShown && _initialFile is null)
+        {
+            await ShowWelcomeAsync();
         }
     }
 
     private async Task<bool> OfferRecoveryAsync()
     {
+        _recoveryOffered = true;
         var drafts = _recovery.List();
         if (drafts.Count == 0)
         {
@@ -170,18 +208,30 @@ public partial class MainWindow : Window
 
     // ───────────────────────── Documento ─────────────────────────
 
+    private WritingOptions CurrentWritingOptions()
+        => new(_focusMode, _typewriterMode, App.Settings.SmartPunctuation, App.Settings.AutoPair, App.Settings.SpellCheck);
+
     private async Task ShowDocumentAsync(MarkdownDocument document)
     {
         _dirtyCheckTimer.Stop();
         _document = document;
         _editorChanged = false;
         var folder = document.FilePath is null ? null : Path.GetDirectoryName(document.FilePath);
-        await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode);
+        await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode, CurrentWritingOptions(), _readOnly, App.Settings.ToolbarVisible);
         _loadedText = document.Text;
         _editorBaseline = await _editor.GetMarkdownAsync();
 
         UpdateTitle();
         StatusText.Text = document.FilePath ?? string.Empty;
+        if (folder is not null)
+        {
+            if (SidebarPanel.Folder is null || !document.FilePath!.StartsWith(SidebarPanel.Folder, StringComparison.OrdinalIgnoreCase))
+            {
+                SidebarPanel.SetFolder(folder);
+            }
+
+            SidebarPanel.Reveal(document.FilePath!);
+        }
 
         // Foco de teclado al control WebView2 (ventana) y después al editor dentro de la página:
         // sin lo primero, lo que se escribe no llega al editor hasta hacer clic en él.
@@ -207,10 +257,37 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Abre un archivo en esta ventana, o activa la ventana que ya lo tiene abierto.</summary>
+    private async Task OpenOrActivateAsync(string path)
+    {
+        var existing = AllWindows.FirstOrDefault(w => w != this && string.Equals(w._document.FilePath, path, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.Activate();
+            return;
+        }
+
+        if (string.Equals(_document.FilePath, path, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (await ConfirmDiscardAsync())
+        {
+            await OpenFileAsync(path);
+        }
+    }
+
+    private Task OpenFromSidebarAsync(string path) => OpenOrActivateAsync(path);
+
     /// <summary>Copia el texto del editor al documento (el editor es la fuente de verdad mientras se edita).</summary>
+    /// <remarks>
+    /// Se lee siempre del editor: el aviso de cambio llega de forma asíncrona y puede no haber llegado
+    /// aún justo después de un comando (p. ej. aplicar negrita y guardar inmediatamente).
+    /// </remarks>
     private async Task SyncFromEditorAsync()
     {
-        if (_editorReady && _editorChanged)
+        if (_editorReady)
         {
             _editorChanged = false;
             var markdown = await _editor.GetMarkdownAsync();
@@ -219,6 +296,15 @@ public partial class MainWindow : Window
             // el documento recupera su texto original byte a byte.
             _document.UpdateText(string.Equals(markdown, _editorBaseline, StringComparison.Ordinal) ? _loadedText : markdown);
         }
+    }
+
+    /// <summary>Sustituye el contenido del editor (operaciones sobre el texto completo, como reescribir rutas).</summary>
+    private async Task ReplaceDocumentTextAsync(string markdown)
+    {
+        await _editor.SetValueAsync(markdown);
+        _document.UpdateText(markdown);
+        _editorChanged = false;
+        UpdateTitle();
     }
 
     private async Task<bool> SaveAsync(bool forceDialog = false)
@@ -232,8 +318,8 @@ public partial class MainWindow : Window
             {
                 Filter = FileFilter,
                 DefaultExt = ".md",
-                FileName = path is null ? "Sin título.md" : Path.GetFileName(path),
-                InitialDirectory = path is null ? null : Path.GetDirectoryName(path),
+                FileName = path is null ? SuggestFileName() : Path.GetFileName(path),
+                InitialDirectory = path is null ? SidebarPanel.Folder : Path.GetDirectoryName(path),
             };
             if (dialog.ShowDialog(this) != true)
             {
@@ -257,21 +343,32 @@ public partial class MainWindow : Window
 
         // El archivo ya está en disco. Lo que sigue es mantenimiento: si falla, se registra
         // pero nunca se informa como error de guardado.
+        _loadedText = _document.Text;
         UpdateTitle();
         StatusText.Text = $"Guardado {DateTime.Now:T}";
-        try
-        {
-            _recovery.Delete(_document.Id);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log.Warn("No se pudo borrar el borrador de recuperación", ex);
-        }
-
+        DiscardRecovery();
         App.Settings.AddRecentFile(path);
         App.SaveSettings();
         RefreshRecentMenu();
+        SidebarPanel.Reveal(path);
         return true;
+    }
+
+    /// <summary>Nombre propuesto para un documento sin guardar: su primer título.</summary>
+    private string SuggestFileName()
+    {
+        var firstHeading = _document.Text.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith('#'))?.TrimStart('#').Trim();
+        if (string.IsNullOrWhiteSpace(firstHeading))
+        {
+            return "Sin título.md";
+        }
+
+        foreach (var c in Path.GetInvalidFileNameChars())
+        {
+            firstHeading = firstHeading.Replace(c, ' ');
+        }
+
+        return (firstHeading.Length > 60 ? firstHeading[..60] : firstHeading).Trim() + ".md";
     }
 
     /// <summary>Pregunta si guardar los cambios. Devuelve false si el usuario cancela.</summary>
@@ -342,7 +439,7 @@ public partial class MainWindow : Window
     private async Task AutoSaveAsync()
     {
         await SyncFromEditorAsync();
-        if (_document.IsDirty && _document.FilePath is not null)
+        if (_document.IsDirty && _document.FilePath is not null && !_readOnly)
         {
             await SaveAsync();
         }
@@ -385,137 +482,11 @@ public partial class MainWindow : Window
         }
     }
 
-    // ───────────────────────── Comandos ─────────────────────────
-
-    private async void OnNew(object sender, ExecutedRoutedEventArgs e)
+    private void OnStatsChanged(DocumentStats stats)
     {
-        if (await ConfirmDiscardAsync())
-        {
-            await ShowDocumentAsync(MarkdownDocument.CreateNew());
-        }
-    }
-
-    private async void OnOpen(object sender, ExecutedRoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog { Filter = FileFilter };
-        if (dialog.ShowDialog(this) == true && await ConfirmDiscardAsync())
-        {
-            await OpenFileAsync(dialog.FileName);
-        }
-    }
-
-    private async void OnSave(object sender, ExecutedRoutedEventArgs e) => await SaveAsync();
-
-    private async void OnSaveAs(object sender, ExecutedRoutedEventArgs e) => await SaveAsync(forceDialog: true);
-
-    private void OnExit(object sender, ExecutedRoutedEventArgs e) => Close();
-
-    private async void OnToggleSourceMode(object sender, RoutedEventArgs e) => await ToggleSourceModeAsync();
-
-    private async Task ToggleSourceModeAsync()
-    {
-        if (!_editorReady)
-        {
-            return;
-        }
-
-        _mode = _mode == EditorMode.Live ? EditorMode.Source : EditorMode.Live;
-        SourceModeMenu.IsChecked = _mode == EditorMode.Source;
-        await _editor.SetModeAsync(_mode);
-    }
-
-    private async void OnPreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        // Ctrl+/ (teclado US) o Ctrl+7 / Ctrl+÷ del teclado numérico (teclado español)
-        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.OemQuestion or Key.Divide or Key.D7)
-        {
-            e.Handled = true;
-            await ToggleSourceModeAsync();
-        }
-    }
-
-    private async void OnDrop(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files && await ConfirmDiscardAsync())
-        {
-            await OpenFileAsync(files[0]);
-        }
-    }
-
-    private async void OnThemeSelected(object sender, RoutedEventArgs e)
-    {
-        if (sender is MenuItem { Tag: string tag } && Enum.TryParse<AppTheme>(tag, out var theme))
-        {
-            App.Settings.Theme = theme;
-            App.SaveSettings();
-            UpdateThemeMenu();
-            if (_editorReady)
-            {
-                await _editor.SetThemeAsync(EditorTheme());
-            }
-        }
-    }
-
-    private async void OnCheckUpdates(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync(interactive: true);
-
-    private void OnApplyUpdate(object sender, RoutedEventArgs e)
-    {
-        _ = ApplyUpdateAsync();
-    }
-
-    private async Task ApplyUpdateAsync()
-    {
-        if (await ConfirmDiscardAsync())
-        {
-            _closingConfirmed = true;
-            _updates.ApplyAndRestart();
-        }
-    }
-
-    private void OnOpenLogs(object sender, RoutedEventArgs e)
-    {
-        Directory.CreateDirectory(App.Paths.LogsFolder);
-        Process.Start(new ProcessStartInfo(App.Paths.LogsFolder) { UseShellExecute = true });
-    }
-
-    private void OnAbout(object sender, RoutedEventArgs e)
-    {
-        var version = _updates.CurrentVersion ?? typeof(App).Assembly.GetName().Version?.ToString(3) ?? "?";
-        MessageBox.Show(this,
-            $"mdViewer {version}\n\nEditor Markdown libre y de código abierto (MIT).\n{UpdateService.RepositoryUrl}",
-            "Acerca de mdViewer", MessageBoxButton.OK, MessageBoxImage.Information);
-    }
-
-    private async Task CheckForUpdatesAsync(bool interactive)
-    {
-        if (!_updates.IsInstalled)
-        {
-            if (interactive)
-            {
-                MessageBox.Show(this, "Las actualizaciones automáticas solo funcionan en la versión instalada.",
-                    "Actualizaciones", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-
-            return;
-        }
-
-        if (interactive)
-        {
-            StatusText.Text = "Buscando actualizaciones…";
-        }
-
-        var ready = await _updates.CheckAndDownloadAsync();
-        if (ready)
-        {
-            UpdateButton.Content = $"Reiniciar para actualizar a {_updates.PendingVersion}";
-            UpdateButton.Visibility = Visibility.Visible;
-        }
-        else if (interactive)
-        {
-            StatusText.Text = string.Empty;
-            MessageBox.Show(this, "Tienes la última versión.", "Actualizaciones", MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
+        _stats = stats;
+        StatsText.Text = stats.Words == 1 ? "1 palabra" : $"{stats.Words:N0} palabras";
+        _wordCountWindow?.Update(stats);
     }
 
     // ───────────────────────── Enlaces ─────────────────────────
@@ -542,7 +513,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            if (IsMarkdownFile(local))
+            if (MarkdownFiles.IsMarkdown(local))
             {
                 _ = OpenLinkedMarkdownAsync(local);
             }
@@ -560,8 +531,18 @@ public partial class MainWindow : Window
 
     private async Task OpenLinkedMarkdownAsync(string path)
     {
-        if (File.Exists(path) && await ConfirmDiscardAsync())
+        if (File.Exists(path))
         {
+            await OpenOrActivateAsync(path);
+            return;
+        }
+
+        // Enlace a un documento que aún no existe: se ofrece crearlo.
+        if (MessageBox.Show(this, $"El documento no existe:\n{path}\n\n¿Quieres crearlo?", "mdViewer",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes && await ConfirmDiscardAsync())
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            await File.WriteAllTextAsync(path, $"# {Path.GetFileNameWithoutExtension(path)}\n");
             await OpenFileAsync(path);
         }
     }
@@ -588,9 +569,6 @@ public partial class MainWindow : Window
         return Path.GetFullPath(Path.Combine(baseFolder, Uri.UnescapeDataString(withoutAnchor)));
     }
 
-    private static bool IsMarkdownFile(string path)
-        => Path.GetExtension(path).ToUpperInvariant() is ".MD" or ".MARKDOWN" or ".MDOWN" or ".QMD";
-
     // ───────────────────────── Ventana ─────────────────────────
 
     protected override void OnClosing(CancelEventArgs e)
@@ -605,6 +583,7 @@ public partial class MainWindow : Window
         if (_closingConfirmed)
         {
             SavePlacement();
+            _wordCountWindow?.Close();
             base.OnClosing(e);
             return;
         }
@@ -634,41 +613,17 @@ public partial class MainWindow : Window
         _dirtyCheckTimer.Stop();
         _recoveryTimer.Stop();
         _autoSaveTimer.Stop();
-        _updates.ApplyOnExit();
+        if (AllWindows.Count() <= 1)
+        {
+            _updates.ApplyOnExit();
+        }
     }
 
     private void UpdateTitle()
     {
         var dirty = _editorChanged || _document.IsDirty ? "• " : string.Empty;
-        Title = $"{dirty}{_document.DisplayName} — mdViewer";
-    }
-
-    private void RefreshRecentMenu()
-    {
-        RecentMenu.Items.Clear();
-        foreach (var path in App.Settings.RecentFiles)
-        {
-            var item = new MenuItem { Header = path.Replace("_", "__", StringComparison.Ordinal), Tag = path };
-            item.Click += async (_, _) =>
-            {
-                if (await ConfirmDiscardAsync())
-                {
-                    await OpenFileAsync(path);
-                }
-            };
-            RecentMenu.Items.Add(item);
-        }
-
-        RecentMenu.IsEnabled = RecentMenu.Items.Count > 0;
-    }
-
-    private void UpdateThemeMenu()
-    {
-        ThemeBlueMenu.IsChecked = App.Settings.Theme == AppTheme.Blue;
-        ThemeLightMenu.IsChecked = App.Settings.Theme == AppTheme.Light;
-        ThemeDarkMenu.IsChecked = App.Settings.Theme == AppTheme.Dark;
-        ThemeSystemMenu.IsChecked = App.Settings.Theme == AppTheme.System;
-        ThemeManager.Apply(this, App.Settings.Theme);
+        var readOnly = _readOnly ? " (solo lectura)" : string.Empty;
+        Title = $"{dirty}{_document.DisplayName}{readOnly} — mdViewer";
     }
 
     private static string EditorTheme() => ThemeManager.EditorTheme(App.Settings.Theme);
@@ -690,9 +645,11 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Las ventanas nuevas se desplazan un poco para no quedar exactamente encima de la anterior.
+        var offset = (AllWindows.Count() - 1) * 28;
         WindowStartupLocation = WindowStartupLocation.Manual;
-        Left = p.Left;
-        Top = p.Top;
+        Left = p.Left + offset;
+        Top = p.Top + offset;
         Width = Math.Max(MinWidth, p.Width);
         Height = Math.Max(MinHeight, p.Height);
         if (p.Maximized)
@@ -706,5 +663,6 @@ public partial class MainWindow : Window
         var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
         App.Settings.Window = new WindowPlacement(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
             WindowState == WindowState.Maximized);
+        App.SaveSettings();
     }
 }
