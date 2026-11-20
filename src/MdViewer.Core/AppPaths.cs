@@ -12,7 +12,11 @@ public sealed class AppPaths
     /// <summary>%APPDATA%\mdViewer: configuración que viaja con el perfil.</summary>
     public string RoamingRoot { get; }
 
-    /// <summary>%LOCALAPPDATA%\mdViewer: logs, recuperación, caché.</summary>
+    /// <summary>
+    /// %LOCALAPPDATA%\mdViewer.Data: logs, recuperación, caché.
+    /// No puede ser %LOCALAPPDATA%\mdViewer: ahí instala Velopack la aplicación y vacía la
+    /// carpeta al instalar o desinstalar, lo que borraría los borradores de recuperación.
+    /// </summary>
     public string LocalRoot { get; }
 
     public string SettingsFile => Path.Combine(RoamingRoot, "settings.json");
@@ -23,5 +27,5 @@ public sealed class AppPaths
 
     public static AppPaths Default { get; } = new(
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mdViewer"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "mdViewer"));
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "mdViewer.Data"));
 }

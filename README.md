@@ -32,7 +32,8 @@ C# y el editor web se comunican con un puente de mensajes: `src/MdViewer.App/Edi
 Datos del usuario:
 
 - Configuración: `%APPDATA%\mdViewer\settings.json`
-- Registros, borradores de recuperación y caché de WebView2: `%LOCALAPPDATA%\mdViewer\`
+- Registros, borradores de recuperación y caché de WebView2: `%LOCALAPPDATA%\mdViewer.Data\`
+- La aplicación instalada: `%LOCALAPPDATA%\mdViewer\` (la gestiona Velopack; no guardar nada ahí)
 
 ## Compilar
 

@@ -557,8 +557,15 @@ public partial class MainWindow : Window
 
     // ───────────────────────── Ventana ─────────────────────────
 
-    protected override async void OnClosing(CancelEventArgs e)
+    protected override void OnClosing(CancelEventArgs e)
     {
+        // Sin cambios pendientes se cierra directamente, sin pasos asíncronos.
+        if (!_closingConfirmed && (!_editorReady || (!_editorChanged && !_document.IsDirty)))
+        {
+            _closingConfirmed = true;
+            PrepareForExit();
+        }
+
         if (_closingConfirmed)
         {
             SavePlacement();
@@ -566,16 +573,31 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Cancelamos y decidimos de forma asíncrona (los diálogos necesitan await).
+        // Hay cambios: cancelamos este cierre y preguntamos de forma asíncrona.
         e.Cancel = true;
-        if (await ConfirmDiscardAsync())
+        _ = ConfirmAndCloseAsync();
+    }
+
+    private async Task ConfirmAndCloseAsync()
+    {
+        if (!await ConfirmDiscardAsync())
         {
-            _closingConfirmed = true;
-            _recoveryTimer.Stop();
-            _autoSaveTimer.Stop();
-            _updates.ApplyOnExit();
-            Close();
+            return;
         }
+
+        _closingConfirmed = true;
+        PrepareForExit();
+
+        // WPF no permite llamar a Close() mientras se está procesando otro cierre:
+        // se pospone hasta que el evento Closing actual haya terminado.
+        _ = Dispatcher.BeginInvoke(Close, DispatcherPriority.Background);
+    }
+
+    private void PrepareForExit()
+    {
+        _recoveryTimer.Stop();
+        _autoSaveTimer.Stop();
+        _updates.ApplyOnExit();
     }
 
     private void UpdateTitle()
