@@ -66,6 +66,7 @@ public partial class MainWindow : Window
         _editor.LinkActivated += (_, href) => OpenLink(href);
         _editor.OutlineChanged += (_, items) => SidebarPanel.SetOutline(items);
         _editor.ActiveHeadingChanged += (_, index) => SidebarPanel.SetActiveHeading(index);
+        _editor.StatusMessage += (_, text) => StatusText.Text = text;
         _editor.ImageReceived += async (_, image) => await InsertImageDataAsync(image.Name, image.Data);
         FindBarPanel.Attach(_editor);
 

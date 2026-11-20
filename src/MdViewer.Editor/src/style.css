@@ -286,3 +286,12 @@ body {
 .vditor-content:has(> .mdv-splitter) > .vditor-preview .vditor-reset {
   padding: 24px 32px 30vh !important;
 }
+
+/* Tamaño de letra independiente de cada mitad en pantalla partida (Ver → Acercar/Alejar, Ctrl+rueda) */
+.vditor-content:has(> .mdv-splitter) > .vditor-sv {
+  font-size: calc(14px * var(--mdv-scale-source, 1)) !important;
+}
+
+.vditor-content:has(> .mdv-splitter) > .vditor-preview .vditor-reset {
+  font-size: calc(16px * var(--mdv-scale-preview, 1)) !important;
+}

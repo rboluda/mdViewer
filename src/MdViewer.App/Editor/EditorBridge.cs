@@ -62,6 +62,9 @@ public sealed class EditorBridge
 
     public event EventHandler<int>? ActiveHeadingChanged;
 
+    /// <summary>Texto para la barra de estado enviado por el editor (p. ej. zoom con Ctrl+rueda).</summary>
+    public event EventHandler<string>? StatusMessage;
+
     /// <summary>Se ha pegado o arrastrado una imagen: nombre y contenido.</summary>
     public event EventHandler<(string Name, byte[] Data)>? ImageReceived;
 
@@ -174,6 +177,10 @@ public sealed class EditorBridge
     public Task SetReadonlyAsync(bool value) => CallAsync("setReadonly", value);
 
     public Task SetToolbarAsync(bool visible) => CallAsync("setToolbar", visible);
+
+    /// <summary>Zoom de la mitad activa en pantalla partida ("in", "out", "reset"); "" si no está en pantalla partida.</summary>
+    public Task<string> ZoomPaneAsync(string action, string? pane = null)
+        => pane is null ? CallStringAsync("zoomPane", action) : CallStringAsync("zoomPane", action, pane);
 
     // ───────────── Buscar ─────────────
 
@@ -315,6 +322,9 @@ public sealed class EditorBridge
                         completion.TrySetResult(root.GetProperty("html").GetString() ?? string.Empty);
                     }
 
+                    break;
+                case "status":
+                    StatusMessage?.Invoke(this, root.GetProperty("text").GetString() ?? string.Empty);
                     break;
                 case "error":
                     Log.Warn($"Error en el editor web: {root.GetProperty("message").GetString()}");

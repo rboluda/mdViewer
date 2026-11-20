@@ -6,6 +6,7 @@ import * as commands from "./commands";
 import * as search from "./search";
 import * as modes from "./modes";
 import * as outline from "./outline";
+import { headingOffsets, pixelOffsets, sourceArea } from "./source";
 
 // Vditor carga sus módulos (lute, katex, mermaid, highlight.js…) bajo demanda desde `cdn`.
 // Apuntamos a la copia local para funcionar sin conexión.
@@ -98,6 +99,130 @@ function saveSplitRatio(ratio: number): void {
   }
 }
 
+// ───────────── Pantalla partida: tamaño de letra independiente en cada mitad ─────────────
+//
+// Se escala el tamaño de letra (no se usa zoom CSS) para que las medidas de desplazamiento sigan
+// en píxeles normales: Vditor sincroniza el desplazamiento del código y de la vista previa por
+// proporción de esas medidas, y así la sincronización no se altera.
+
+type Pane = "source" | "preview";
+const PANE_KEYS: Record<Pane, string> = { source: "mdv-scale-source", preview: "mdv-scale-preview" };
+const paneScale: Record<Pane, number> = { source: 1, preview: 1 };
+let activePane: Pane = "source";
+
+function readPaneScales(): void {
+  for (const pane of ["source", "preview"] as Pane[]) {
+    try {
+      const value = Number(window.localStorage.getItem(PANE_KEYS[pane]));
+      paneScale[pane] = value >= 0.5 && value <= 3 ? value : 1;
+    } catch {
+      paneScale[pane] = 1;
+    }
+  }
+  applyPaneScales();
+}
+
+function applyPaneScales(): void {
+  document.documentElement.style.setProperty("--mdv-scale-source", String(paneScale.source));
+  document.documentElement.style.setProperty("--mdv-scale-preview", String(paneScale.preview));
+}
+
+/** Cambia el tamaño de una mitad: "in", "out" o "reset". Devuelve el texto para la barra de estado. */
+function zoomPane(pane: Pane, action: "in" | "out" | "reset"): string {
+  const next = action === "reset" ? 1 : paneScale[pane] + (action === "in" ? 0.1 : -0.1);
+  paneScale[pane] = Math.round(Math.min(3, Math.max(0.5, next)) * 100) / 100;
+  applyPaneScales();
+  invalidateSyncAnchors();
+  try {
+    window.localStorage.setItem(PANE_KEYS[pane], String(paneScale[pane]));
+  } catch {
+    // Sin almacenamiento local: el tamaño no se recuerda entre sesiones.
+  }
+  return `${pane === "source" ? "Código" : "Resultado"}: ${Math.round(paneScale[pane] * 100)} %`;
+}
+
+function paneOf(target: EventTarget | null): Pane | null {
+  const element = target instanceof Element ? target : null;
+  if (element?.closest(".vditor-preview")) return "preview";
+  if (element?.closest(".vditor-sv")) return "source";
+  return null;
+}
+
+// La mitad "activa" es la última en la que se hizo clic o se escribió.
+document.addEventListener("pointerdown", (e) => { activePane = paneOf(e.target) ?? activePane; }, true);
+document.addEventListener("focusin", (e) => { activePane = paneOf(e.target) ?? activePane; }, true);
+
+// Ctrl+rueda sobre una mitad cambia solo esa mitad (en lugar del zoom de toda la página).
+document.addEventListener(
+  "wheel",
+  (e) => {
+    if (currentMode !== "split" || !e.ctrlKey) return;
+    const pane = paneOf(e.target);
+    if (!pane) return;
+    e.preventDefault();
+    activePane = pane;
+    postToHost({ type: "status", text: zoomPane(pane, e.deltaY < 0 ? "in" : "out") });
+  },
+  { capture: true, passive: false },
+);
+
+// ───────────── Pantalla partida: desplazamiento sincronizado por títulos ─────────────
+//
+// Vditor sincroniza la vista previa por proporción de altura, lo que deja de cuadrar cuando cada
+// mitad tiene un tamaño de letra distinto. Aquí se ancla en los títulos: se busca el último título
+// que ha pasado por arriba en el código y la fracción recorrida hasta el siguiente, y la vista
+// previa se coloca en el mismo título y la misma fracción. Funciona con cualquier tamaño.
+
+let syncAnchors: { source: number[]; preview: number[] } | null = null;
+
+function invalidateSyncAnchors(): void {
+  syncAnchors = null;
+}
+
+function computeSyncAnchors(area: HTMLTextAreaElement, preview: HTMLElement): { source: number[]; preview: number[] } {
+  const offsets = headingOffsets(area.value);
+  const sourcePx = pixelOffsets(area, offsets);
+  const box = preview.getBoundingClientRect();
+  const headings = Array.from(preview.querySelectorAll<HTMLElement>(".vditor-reset h1, .vditor-reset h2, .vditor-reset h3, .vditor-reset h4, .vditor-reset h5, .vditor-reset h6"));
+  const previewPx = headings.map((h) => h.getBoundingClientRect().top - box.top + preview.scrollTop);
+  // Si el recuento no coincide (vista previa aún sin actualizar), se usan los comunes.
+  const n = Math.min(sourcePx.length, previewPx.length);
+  return { source: sourcePx.slice(0, n), preview: previewPx.slice(0, n) };
+}
+
+function syncPreviewScroll(area: HTMLTextAreaElement, preview: HTMLElement): void {
+  if (currentMode !== "split" || preview.style.display === "none") return;
+  syncAnchors ??= computeSyncAnchors(area, preview);
+  const { source, preview: target } = syncAnchors;
+  const y = area.scrollTop;
+  const sourceMax = area.scrollHeight - area.clientHeight;
+  const previewMax = preview.scrollHeight - preview.clientHeight;
+  if (sourceMax <= 0) return;
+  if (y >= sourceMax - 2) {
+    preview.scrollTop = previewMax;
+    return;
+  }
+  // Tramos: [inicio → título 1], [título k → título k+1], [último título → final].
+  const s = [0, ...source, area.scrollHeight];
+  const p = [0, ...target, preview.scrollHeight];
+  let k = 0;
+  while (k < s.length - 2 && s[k + 1] <= y) k++;
+  const fraction = (y - s[k]) / Math.max(1, s[k + 1] - s[k]);
+  preview.scrollTop = Math.min(previewMax, p[k] + fraction * (p[k + 1] - p[k]));
+}
+
+function attachScrollSync(): void {
+  const area = sourceArea();
+  const preview = document.querySelector<HTMLElement>("#editor .vditor-preview");
+  if (!area || !preview || area.dataset.mdvSync) return;
+  area.dataset.mdvSync = "1";
+  // Se registra después del de Vditor, así que su resultado es el que prevalece.
+  area.addEventListener("scroll", () => syncPreviewScroll(area, preview));
+  area.addEventListener("input", invalidateSyncAnchors);
+  new ResizeObserver(invalidateSyncAnchors).observe(area);
+  new MutationObserver(invalidateSyncAnchors).observe(preview, { childList: true, subtree: true });
+}
+
 /** Coloca (o quita) el separador entre el código y la vista previa según el modo. */
 function updateSplitter(): void {
   const content = document.querySelector<HTMLElement>("#editor .vditor-content");
@@ -118,6 +243,8 @@ function updateSplitter(): void {
     preview.style.flex = "1 1 0";
   };
   apply(readSplitRatio());
+  attachScrollSync();
+  invalidateSyncAnchors();
   if (splitter) return;
 
   splitter = document.createElement("div");
@@ -379,10 +506,12 @@ const api: EditorApi = {
     vditor?.updateToolbarConfig({ hide: !visible });
   },
   renderExport: (id) => renderExport(id),
+  zoomPane: (action, pane) => (currentMode === "split" ? zoomPane(pane ?? activePane, action) : ""),
 };
 
 window.mdEditor = api;
 
+readPaneScales();
 commands.trackSelection();
 commands.onChanged(() => {
   postToHost({ type: "changed" });

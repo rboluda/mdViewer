@@ -26,6 +26,7 @@ export type HostMessage =
   | { type: "activeHeading"; index: number }
   | { type: "image"; name: string; data: string }
   | { type: "export"; id: string; html: string }
+  | { type: "status"; text: string }
   | { type: "error"; message: string };
 
 interface WebViewHost {
@@ -78,6 +79,8 @@ export interface EditorApi {
   setReadonly(readonly: boolean): void;
   setToolbar(visible: boolean): void;
   renderExport(id: string): void;
+  /** Zoom de la mitad activa en pantalla partida; devuelve "" si no se está en pantalla partida. */
+  zoomPane(action: "in" | "out" | "reset", pane?: "source" | "preview"): string;
 }
 
 export function postToHost(message: HostMessage): void {

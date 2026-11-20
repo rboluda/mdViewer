@@ -651,6 +651,41 @@ public partial class MainWindow
         App.SaveSettings();
     }
 
+    /// <summary>
+    /// Acercar, alejar o tamaño real. En pantalla partida actúa sobre la mitad activa (código o
+    /// resultado) de forma independiente; en los demás modos, sobre toda la página.
+    /// </summary>
+    private async Task ZoomAsync(string action, string? pane = null)
+    {
+        if (!_editorReady)
+        {
+            return;
+        }
+
+        if (_mode == EditorMode.Split)
+        {
+            var result = await _editor.ZoomPaneAsync(action, pane);
+            if (!string.IsNullOrEmpty(result))
+            {
+                StatusText.Text = result + " · Ctrl+rueda sobre cada mitad para ajustarla por separado";
+                return;
+            }
+        }
+
+        if (pane is not null)
+        {
+            StatusText.Text = "El tamaño del código y del resultado por separado solo se aplica en la pantalla partida.";
+            return;
+        }
+
+        SetZoom(action switch
+        {
+            "in" => _editor.ZoomFactor + 0.1,
+            "out" => _editor.ZoomFactor - 0.1,
+            _ => 1.0,
+        });
+    }
+
     private void SetZoom(double zoom)
     {
         if (!_editorReady)

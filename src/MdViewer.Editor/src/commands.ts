@@ -7,6 +7,7 @@
  * sobre el DOM del modo "IR" o sobre el texto Markdown.
  */
 import type Vditor from "vditor";
+import { lineBounds, replaceRange, sourceArea } from "./source";
 
 /** Acceso a la parte interna de Vditor (lute, modo actual, elemento editable). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,7 +207,10 @@ export function selectionMarkdown(): string {
   const v = inner();
   const range = currentRange();
   if (!v || !range || range.collapsed) return "";
-  if (mode() === "sv") return window.getSelection()?.toString() ?? "";
+  if (mode() === "sv") {
+    const area = sourceArea();
+    return area ? area.value.substring(area.selectionStart, area.selectionEnd) : "";
+  }
   const fragment = range.cloneContents();
   const plain = window.getSelection()?.toString() ?? "";
   // lute convierte bloques: si la selección está dentro de un párrafo, se envuelve en uno.
@@ -292,31 +296,20 @@ function setHeading(level: number): void {
 // ───────────── Modo código fuente: líneas ─────────────
 
 function currentSourceLine(): string {
-  const text = current?.getValue() ?? "";
-  const pos = current?.getCursorPosition();
-  void pos;
-  const sel = window.getSelection();
-  const el = editableElement();
-  if (!el || !sel || sel.rangeCount === 0) return "";
-  const pre = document.createRange();
-  pre.selectNodeContents(el);
-  pre.setEnd(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset);
-  const offset = pre.toString().length;
-  const start = text.lastIndexOf("\n", offset - 1) + 1;
-  const end = text.indexOf("\n", offset);
-  return text.substring(start, end === -1 ? text.length : end);
+  const area = sourceArea();
+  if (!area) return "";
+  const { start, end } = lineBounds(area.value, area.selectionStart);
+  return area.value.substring(start, end);
 }
 
+/** Reescribe el principio de la línea actual del código fuente (p. ej. cambia "## " por "### "). */
 function replaceSourceLinePrefix(prefix: RegExp, replacement: string): void {
-  // Selecciona la línea actual y la reescribe con el nuevo prefijo.
-  const sel = window.getSelection();
-  if (!sel) return;
-  sel.modify("move", "backward", "lineboundary");
-  sel.modify("extend", "forward", "lineboundary");
-  const line = sel.toString();
-  insertText(replacement + line.replace(prefix, ""));
+  const area = sourceArea();
+  if (!area) return;
+  const { start, end } = lineBounds(area.value, area.selectionStart);
+  const line = area.value.substring(start, end);
+  replaceRange(area, start, end, replacement + line.replace(prefix, ""));
 }
-
 // ───────────── Mover y borrar bloques ─────────────
 
 /** Reconstruye el documento a partir del DOM modificado y deja el cursor en el bloque indicado. */
@@ -381,6 +374,15 @@ function deleteBlock(): void {
 
 function selectWord(): void {
   restoreSelection();
+  const area = mode() === "sv" ? sourceArea() : null;
+  if (area) {
+    const text = area.value;
+    let s = area.selectionStart, e = area.selectionStart;
+    while (s > 0 && /[\p{L}\p{N}_]/u.test(text[s - 1])) s--;
+    while (e < text.length && /[\p{L}\p{N}_]/u.test(text[e])) e++;
+    area.setSelectionRange(s, e);
+    return;
+  }
   const sel = window.getSelection();
   if (!sel) return;
   sel.modify("move", "backward", "word");
@@ -398,9 +400,11 @@ function selectWord(): void {
 function selectLine(): void {
   restoreSelection();
   if (mode() !== "ir") {
-    const sel = window.getSelection();
-    sel?.modify("move", "backward", "lineboundary");
-    sel?.modify("extend", "forward", "lineboundary");
+    const area = sourceArea();
+    if (area) {
+      const { start, end } = lineBounds(area.value, area.selectionStart);
+      area.setSelectionRange(start, end);
+    }
     return;
   }
   const target = closest("td, th, li > p, li, h1, h2, h3, h4, h5, h6, p") ?? topBlock();
@@ -610,8 +614,13 @@ export function exec(command: string, arg?: string): void {
       moveBlock(1);
       break;
     case "select-all": {
-      const el = editableElement();
-      if (el) selectNodeContents(el);
+      const area = mode() === "sv" ? sourceArea() : null;
+      if (area) {
+        area.select();
+      } else {
+        const el = editableElement();
+        if (el) selectNodeContents(el);
+      }
       break;
     }
     case "select-word":

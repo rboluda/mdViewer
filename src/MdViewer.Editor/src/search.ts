@@ -4,6 +4,7 @@
  */
 import type Vditor from "vditor";
 import { editableElement, insertText } from "./commands";
+import { replaceRange, selectAndReveal, sourceArea } from "./source";
 
 export interface FindOptions {
   caseSensitive?: boolean;
@@ -17,6 +18,8 @@ export interface FindResult {
   error?: string;
 }
 
+/** Coincidencias en modo código fuente (textarea): posiciones dentro de su texto. */
+let sourceMatches: { start: number; end: number }[] = [];
 let ranges: Range[] = [];
 let index = -1;
 let lastQuery = "";
@@ -95,6 +98,17 @@ export function find(query: string, options: FindOptions = {}, fromCursor = true
     clear();
     return { count: 0, current: 0, error: String(error) };
   }
+  const area = sourceArea();
+  if (area) {
+    sourceMatches = [];
+    for (const m of area.value.matchAll(regex)) {
+      if (m[0].length) sourceMatches.push({ start: m.index ?? 0, end: (m.index ?? 0) + m[0].length });
+    }
+    const caret = area.selectionStart;
+    index = sourceMatches.length ? Math.max(0, sourceMatches.findIndex((s) => s.start >= caret)) : -1;
+    if (index >= 0) selectAndReveal(area, sourceMatches[index].start, sourceMatches[index].end);
+    return { count: sourceMatches.length, current: index + 1 };
+  }
   ranges = collectRanges(regex);
   index = ranges.length ? 0 : -1;
   if (fromCursor && ranges.length) {
@@ -110,6 +124,13 @@ export function find(query: string, options: FindOptions = {}, fromCursor = true
 }
 
 export function step(direction: 1 | -1): FindResult {
+  const area = sourceArea();
+  if (area) {
+    if (!sourceMatches.length) return find(lastQuery, lastOptions);
+    index = (index + direction + sourceMatches.length) % sourceMatches.length;
+    selectAndReveal(area, sourceMatches[index].start, sourceMatches[index].end);
+    return { count: sourceMatches.length, current: index + 1 };
+  }
   if (!ranges.length) return find(lastQuery, lastOptions);
   index = (index + direction + ranges.length) % ranges.length;
   paint();
@@ -117,6 +138,7 @@ export function step(direction: 1 | -1): FindResult {
 }
 
 export function clear(): void {
+  sourceMatches = [];
   ranges = [];
   index = -1;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -127,6 +149,21 @@ export function clear(): void {
 
 /** Sustituye la coincidencia actual. El host vuelve a llamar a find() para recalcular. */
 export function replaceCurrent(replacement: string): void {
+  const area = sourceArea();
+  if (area) {
+    const match = sourceMatches[index];
+    if (!match) return;
+    let text = replacement;
+    if (lastOptions.regex) {
+      try {
+        text = area.value.substring(match.start, match.end).replace(buildRegex(lastQuery, lastOptions), replacement);
+      } catch {
+        // Expresión no válida: se usa el texto literal.
+      }
+    }
+    replaceRange(area, match.start, match.end, text);
+    return;
+  }
   if (index < 0 || !ranges[index]) return;
   const range = ranges[index];
   let text = replacement;

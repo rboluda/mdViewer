@@ -3,6 +3,7 @@
  */
 import type Vditor from "vditor";
 import { editableElement, markdownToText, mode } from "./commands";
+import { headingOffsets, scrollToOffset, sourceArea } from "./source";
 
 export interface OutlineItem {
   level: number;
@@ -57,11 +58,15 @@ export function scrollToHeading(index: number): void {
     }
     return;
   }
-  // En modo código fuente se busca la línea del título.
-  const el = editableElement();
-  if (!el) return;
-  const lines = el.querySelectorAll<HTMLElement>("[data-type='heading-marker'], .vditor-sv__marker--heading");
-  lines[index]?.scrollIntoView({ block: "start", behavior: "smooth" });
+  // Modo código fuente (textarea): se busca la línea del título y se desplaza hasta ella con el
+  // cursor al principio. El evento de desplazamiento hace que Vditor sincronice la vista previa.
+  const area = sourceArea();
+  if (!area) return;
+  const offset = headingOffsets(area.value)[index];
+  if (offset === undefined) return;
+  area.focus({ preventScroll: true });
+  area.setSelectionRange(offset, offset);
+  scrollToOffset(area, offset, 0);
 }
 
 /** Índice del título visible en la parte superior de la ventana. */
