@@ -73,6 +73,9 @@ public sealed class AppSettings
 
     public bool AutoPair { get; set; } = true;
 
+    /// <summary>Números de línea en el modo código fuente y en la pantalla partida.</summary>
+    public bool LineNumbers { get; set; }
+
     public double Zoom { get; set; } = 1.0;
 
     // ── Ventana ──

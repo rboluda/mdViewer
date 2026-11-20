@@ -48,6 +48,7 @@ export interface LoadOptions {
   writing?: Partial<WritingOptions>;
   readonly?: boolean;
   toolbar?: boolean;
+  lineNumbers?: boolean;
 }
 
 /** API que C# invoca. */
@@ -81,6 +82,7 @@ export interface EditorApi {
   renderExport(id: string): void;
   /** Zoom de la mitad activa en pantalla partida; devuelve "" si no se está en pantalla partida. */
   zoomPane(action: "in" | "out" | "reset", pane?: "source" | "preview"): string;
+  setLineNumbers(value: boolean): void;
 }
 
 export function postToHost(message: HostMessage): void {

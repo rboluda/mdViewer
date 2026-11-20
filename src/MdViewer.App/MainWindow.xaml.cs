@@ -218,7 +218,7 @@ public partial class MainWindow : Window
         _document = document;
         _editorChanged = false;
         var folder = document.FilePath is null ? null : Path.GetDirectoryName(document.FilePath);
-        await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode, CurrentWritingOptions(), _readOnly, App.Settings.ToolbarVisible);
+        await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode, CurrentWritingOptions(), _readOnly, App.Settings.ToolbarVisible, App.Settings.LineNumbers);
         _loadedText = document.Text;
         _editorBaseline = await _editor.GetMarkdownAsync();
 

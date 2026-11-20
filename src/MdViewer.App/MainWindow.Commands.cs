@@ -578,6 +578,16 @@ public partial class MainWindow
         UpdateTitle();
     }
 
+    private static async Task ToggleLineNumbersAsync()
+    {
+        App.Settings.LineNumbers = !App.Settings.LineNumbers;
+        App.SaveSettings();
+        foreach (var window in AllWindows.Where(w => w._editorReady))
+        {
+            await window._editor.SetLineNumbersAsync(App.Settings.LineNumbers);
+        }
+    }
+
     private async Task ToggleFocusModeAsync()
     {
         _focusMode = !_focusMode;

@@ -112,7 +112,7 @@ public sealed class EditorBridge
 
     /// <summary>Carga un documento. <paramref name="documentFolder"/> resuelve imágenes y enlaces relativos.</summary>
     public async Task LoadAsync(string markdown, string? documentFolder, string theme, EditorMode mode,
-        WritingOptions writing, bool readOnly, bool toolbar)
+        WritingOptions writing, bool readOnly, bool toolbar, bool lineNumbers)
     {
         MapDocumentFolder(documentFolder);
         _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -125,6 +125,7 @@ public sealed class EditorBridge
             writing,
             @readonly = readOnly,
             toolbar,
+            lineNumbers,
         };
         await CallAsync("load", markdown, options);
         await _ready.Task.WaitAsync(TimeSpan.FromSeconds(30));
@@ -177,6 +178,8 @@ public sealed class EditorBridge
     public Task SetReadonlyAsync(bool value) => CallAsync("setReadonly", value);
 
     public Task SetToolbarAsync(bool visible) => CallAsync("setToolbar", visible);
+
+    public Task SetLineNumbersAsync(bool visible) => CallAsync("setLineNumbers", visible);
 
     /// <summary>Zoom de la mitad activa en pantalla partida ("in", "out", "reset"); "" si no está en pantalla partida.</summary>
     public Task<string> ZoomPaneAsync(string action, string? pane = null)

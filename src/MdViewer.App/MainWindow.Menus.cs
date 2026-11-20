@@ -271,6 +271,7 @@ public partial class MainWindow
         RegisterKey(K(Key.Divide, ModifierKeys.Control), Run(() => SetModeAsync(_mode == EditorMode.Source ? EditorMode.Live : EditorMode.Source)));
         Check(m, "_Pantalla partida (código y resultado)", () => _mode == EditorMode.Split, Run(() => SetModeAsync(_mode == EditorMode.Split ? EditorMode.Live : EditorMode.Split)));
         Check(m, "Modo _solo lectura", () => _readOnly, Run(ToggleReadOnlyAsync));
+        Check(m, "_Números de línea en el código", () => App.Settings.LineNumbers, Run(ToggleLineNumbersAsync));
         Sep(m);
         Check(m, "Modo _concentración", () => _focusMode, Run(ToggleFocusModeAsync), "F8", K(Key.F8, ModifierKeys.None));
         Check(m, "Modo _máquina de escribir", () => _typewriterMode, Run(ToggleTypewriterModeAsync), "F9", K(Key.F9, ModifierKeys.None));

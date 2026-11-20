@@ -295,3 +295,86 @@ body {
 .vditor-content:has(> .mdv-splitter) > .vditor-preview .vditor-reset {
   font-size: calc(16px * var(--mdv-scale-preview, 1)) !important;
 }
+
+/* ── Pantalla partida: botón de sincronización (arriba, en medio de las dos mitades) ── */
+.vditor-content {
+  position: relative;
+}
+
+.mdv-splitter {
+  position: relative;
+  overflow: visible;
+}
+
+.mdv-sync-button {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--page-bg);
+  color: var(--page-fg);
+  opacity: 0.6;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.mdv-sync-button:hover {
+  opacity: 1;
+}
+
+.mdv-sync-button.mdv-sync-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  opacity: 1;
+}
+
+/* ── Selección reflejada en la otra mitad ── */
+::highlight(mdv-mirror) {
+  background-color: rgba(0, 110, 232, 0.22);
+}
+
+.mdv-source-mark {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(0, 110, 232, 0.14);
+  border-left: 3px solid var(--accent);
+  z-index: 3;
+}
+
+/* ── Números de línea del código fuente ── */
+.mdv-gutter {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.mdv-gutter-inner {
+  position: relative;
+  color: var(--page-fg);
+  opacity: 0.38;
+  font-variant-numeric: tabular-nums;
+}
+
+.mdv-gutter-inner > span {
+  position: absolute;
+  right: 0;
+  white-space: nowrap;
+}
+
+/* Con números de línea, el código deja hueco a la izquierda para ellos */
+.mdv-line-numbers .vditor-sv {
+  padding-left: max(68px, calc((100% - 900px) / 2)) !important;
+}
+
+.mdv-line-numbers .vditor-content:has(> .mdv-splitter) > .vditor-sv {
+  padding-left: 68px !important;
+}

@@ -6,7 +6,7 @@ import * as commands from "./commands";
 import * as search from "./search";
 import * as modes from "./modes";
 import * as outline from "./outline";
-import { headingOffsets, pixelOffsets, sourceArea } from "./source";
+import * as split from "./split";
 
 // Vditor carga sus módulos (lute, katex, mermaid, highlight.js…) bajo demanda desde `cdn`.
 // Apuntamos a la copia local para funcionar sin conexión.
@@ -132,7 +132,7 @@ function zoomPane(pane: Pane, action: "in" | "out" | "reset"): string {
   const next = action === "reset" ? 1 : paneScale[pane] + (action === "in" ? 0.1 : -0.1);
   paneScale[pane] = Math.round(Math.min(3, Math.max(0.5, next)) * 100) / 100;
   applyPaneScales();
-  invalidateSyncAnchors();
+  split.invalidate();
   try {
     window.localStorage.setItem(PANE_KEYS[pane], String(paneScale[pane]));
   } catch {
@@ -166,63 +166,6 @@ document.addEventListener(
   { capture: true, passive: false },
 );
 
-// ───────────── Pantalla partida: desplazamiento sincronizado por títulos ─────────────
-//
-// Vditor sincroniza la vista previa por proporción de altura, lo que deja de cuadrar cuando cada
-// mitad tiene un tamaño de letra distinto. Aquí se ancla en los títulos: se busca el último título
-// que ha pasado por arriba en el código y la fracción recorrida hasta el siguiente, y la vista
-// previa se coloca en el mismo título y la misma fracción. Funciona con cualquier tamaño.
-
-let syncAnchors: { source: number[]; preview: number[] } | null = null;
-
-function invalidateSyncAnchors(): void {
-  syncAnchors = null;
-}
-
-function computeSyncAnchors(area: HTMLTextAreaElement, preview: HTMLElement): { source: number[]; preview: number[] } {
-  const offsets = headingOffsets(area.value);
-  const sourcePx = pixelOffsets(area, offsets);
-  const box = preview.getBoundingClientRect();
-  const headings = Array.from(preview.querySelectorAll<HTMLElement>(".vditor-reset h1, .vditor-reset h2, .vditor-reset h3, .vditor-reset h4, .vditor-reset h5, .vditor-reset h6"));
-  const previewPx = headings.map((h) => h.getBoundingClientRect().top - box.top + preview.scrollTop);
-  // Si el recuento no coincide (vista previa aún sin actualizar), se usan los comunes.
-  const n = Math.min(sourcePx.length, previewPx.length);
-  return { source: sourcePx.slice(0, n), preview: previewPx.slice(0, n) };
-}
-
-function syncPreviewScroll(area: HTMLTextAreaElement, preview: HTMLElement): void {
-  if (currentMode !== "split" || preview.style.display === "none") return;
-  syncAnchors ??= computeSyncAnchors(area, preview);
-  const { source, preview: target } = syncAnchors;
-  const y = area.scrollTop;
-  const sourceMax = area.scrollHeight - area.clientHeight;
-  const previewMax = preview.scrollHeight - preview.clientHeight;
-  if (sourceMax <= 0) return;
-  if (y >= sourceMax - 2) {
-    preview.scrollTop = previewMax;
-    return;
-  }
-  // Tramos: [inicio → título 1], [título k → título k+1], [último título → final].
-  const s = [0, ...source, area.scrollHeight];
-  const p = [0, ...target, preview.scrollHeight];
-  let k = 0;
-  while (k < s.length - 2 && s[k + 1] <= y) k++;
-  const fraction = (y - s[k]) / Math.max(1, s[k + 1] - s[k]);
-  preview.scrollTop = Math.min(previewMax, p[k] + fraction * (p[k + 1] - p[k]));
-}
-
-function attachScrollSync(): void {
-  const area = sourceArea();
-  const preview = document.querySelector<HTMLElement>("#editor .vditor-preview");
-  if (!area || !preview || area.dataset.mdvSync) return;
-  area.dataset.mdvSync = "1";
-  // Se registra después del de Vditor, así que su resultado es el que prevalece.
-  area.addEventListener("scroll", () => syncPreviewScroll(area, preview));
-  area.addEventListener("input", invalidateSyncAnchors);
-  new ResizeObserver(invalidateSyncAnchors).observe(area);
-  new MutationObserver(invalidateSyncAnchors).observe(preview, { childList: true, subtree: true });
-}
-
 /** Coloca (o quita) el separador entre el código y la vista previa según el modo. */
 function updateSplitter(): void {
   const content = document.querySelector<HTMLElement>("#editor .vditor-content");
@@ -232,6 +175,7 @@ function updateSplitter(): void {
   if (!content || !source || !preview) return;
 
   if (currentMode !== "split") {
+    split.reset();
     splitter?.remove();
     source.style.flex = "";
     preview.style.flex = "";
@@ -243,14 +187,14 @@ function updateSplitter(): void {
     preview.style.flex = "1 1 0";
   };
   apply(readSplitRatio());
-  attachScrollSync();
-  invalidateSyncAnchors();
+  split.attach();
   if (splitter) return;
 
   splitter = document.createElement("div");
   splitter.className = "mdv-splitter";
   splitter.title = "Arrastra para cambiar el tamaño (doble clic: mitad y mitad)";
   source.after(splitter);
+  split.createSyncButton(splitter);
 
   splitter.addEventListener("pointerdown", (event) => {
     event.preventDefault();
@@ -288,7 +232,7 @@ function create(markdown: string): void {
   ensureToolbarIcons();
   suppressChange = true;
 
-  const split = currentMode === "split";
+  const splitMode = currentMode === "split";
   let created: Vditor | null = null;
   created = new Vditor("editor", {
     value: markdown,
@@ -303,7 +247,7 @@ function create(markdown: string): void {
     counter: { enable: false },
     preview: {
       delay: 300,
-      mode: split ? "both" : "editor",
+      mode: splitMode ? "both" : "editor",
       actions: [], // sin la barra "Desktop / Tablet / Mobile" de la vista previa
       theme: { current: contentTheme() },
       hljs: { style: codeTheme(), lineNumber: false },
@@ -328,6 +272,7 @@ function create(markdown: string): void {
       if (readonly) created?.disabled();
       modes.apply();
       updateSplitter();
+      split.attach();
       scheduleInfo();
       postToHost({ type: "ready" });
     },
@@ -432,6 +377,7 @@ const api: EditorApi = {
     if (options?.writing) Object.assign(modes.options, options.writing);
     if (options?.readonly !== undefined) readonly = options.readonly;
     if (options?.toolbar !== undefined) toolbarVisible = options.toolbar;
+    if (options?.lineNumbers !== undefined) split.setLineNumbers(options.lineNumbers);
     document.body.classList.toggle("mdv-readonly", readonly);
     applyBaseUrl(options?.baseUrl);
     create(markdown);
@@ -462,6 +408,7 @@ const api: EditorApi = {
       // Entre código fuente y pantalla partida solo cambia la vista previa.
       vditor.setPreviewMode(mode === "split" ? "both" : "editor");
       updateSplitter();
+      split.attach();
       postToHost({ type: "ready" });
       return;
     }
@@ -506,12 +453,14 @@ const api: EditorApi = {
     vditor?.updateToolbarConfig({ hide: !visible });
   },
   renderExport: (id) => renderExport(id),
+  setLineNumbers: (value) => split.setLineNumbers(value),
   zoomPane: (action, pane) => (currentMode === "split" ? zoomPane(pane ?? activePane, action) : ""),
 };
 
 window.mdEditor = api;
 
 readPaneScales();
+split.configure({ isSplit: () => currentMode === "split" });
 commands.trackSelection();
 commands.onChanged(() => {
   postToHost({ type: "changed" });
