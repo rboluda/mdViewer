@@ -77,6 +77,79 @@ function ensureToolbarIcons(): void {
   document.head.appendChild(script);
 }
 
+// ───────────── Pantalla partida: separador arrastrable ─────────────
+
+const SPLIT_KEY = "mdv-split-ratio";
+
+function readSplitRatio(): number {
+  try {
+    const value = Number(window.localStorage.getItem(SPLIT_KEY));
+    return value >= 0.15 && value <= 0.85 ? value : 0.5;
+  } catch {
+    return 0.5;
+  }
+}
+
+function saveSplitRatio(ratio: number): void {
+  try {
+    window.localStorage.setItem(SPLIT_KEY, String(ratio));
+  } catch {
+    // Sin almacenamiento local: la posición simplemente no se recuerda.
+  }
+}
+
+/** Coloca (o quita) el separador entre el código y la vista previa según el modo. */
+function updateSplitter(): void {
+  const content = document.querySelector<HTMLElement>("#editor .vditor-content");
+  const source = content?.querySelector<HTMLElement>(":scope > .vditor-sv");
+  const preview = content?.querySelector<HTMLElement>(":scope > .vditor-preview");
+  let splitter = content?.querySelector<HTMLElement>(":scope > .mdv-splitter") ?? null;
+  if (!content || !source || !preview) return;
+
+  if (currentMode !== "split") {
+    splitter?.remove();
+    source.style.flex = "";
+    preview.style.flex = "";
+    return;
+  }
+
+  const apply = (ratio: number) => {
+    source.style.flex = `0 0 ${(ratio * 100).toFixed(2)}%`;
+    preview.style.flex = "1 1 0";
+  };
+  apply(readSplitRatio());
+  if (splitter) return;
+
+  splitter = document.createElement("div");
+  splitter.className = "mdv-splitter";
+  splitter.title = "Arrastra para cambiar el tamaño (doble clic: mitad y mitad)";
+  source.after(splitter);
+
+  splitter.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add("mdv-resizing");
+    const move = (e: PointerEvent) => {
+      const box = content.getBoundingClientRect();
+      const ratio = Math.min(0.85, Math.max(0.15, (e.clientX - box.left) / box.width));
+      apply(ratio);
+      saveSplitRatio(ratio);
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      document.body.classList.remove("mdv-resizing");
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+  });
+  splitter.addEventListener("dblclick", () => {
+    apply(0.5);
+    saveSplitRatio(0.5);
+  });
+}
+
 function create(markdown: string): void {
   // Se destruye y se suelta la instancia anterior ANTES de crear la nueva:
   // Vditor invoca callbacks durante el constructor y no deben tocar una instancia destruida.
@@ -104,6 +177,7 @@ function create(markdown: string): void {
     preview: {
       delay: 300,
       mode: split ? "both" : "editor",
+      actions: [], // sin la barra "Desktop / Tablet / Mobile" de la vista previa
       theme: { current: contentTheme() },
       hljs: { style: codeTheme(), lineNumber: false },
       markdown: { toc: true, mark: true, footnotes: true, autoSpace: false, sup: true, sub: true },
@@ -126,6 +200,7 @@ function create(markdown: string): void {
       suppressChange = false;
       if (readonly) created?.disabled();
       modes.apply();
+      updateSplitter();
       scheduleInfo();
       postToHost({ type: "ready" });
     },
@@ -259,6 +334,7 @@ const api: EditorApi = {
     if (wasSource && isSource) {
       // Entre código fuente y pantalla partida solo cambia la vista previa.
       vditor.setPreviewMode(mode === "split" ? "both" : "editor");
+      updateSplitter();
       postToHost({ type: "ready" });
       return;
     }

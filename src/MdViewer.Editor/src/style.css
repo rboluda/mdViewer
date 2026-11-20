@@ -235,3 +235,54 @@ body {
 .vditor-preview .vditor-reset {
   padding: 32px !important;
 }
+
+/* ── Pantalla partida: separador arrastrable y vista previa a todo el ancho ── */
+.vditor-content {
+  display: flex;
+}
+
+.mdv-splitter {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--border);
+  opacity: 0.5;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
+}
+
+.mdv-splitter:hover,
+.mdv-resizing .mdv-splitter {
+  opacity: 1;
+  background: var(--accent);
+}
+
+/* Mientras se arrastra, que el texto no se seleccione y el cursor no cambie */
+.mdv-resizing,
+.mdv-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.vditor-content > .vditor-sv,
+.vditor-content > .vditor-preview {
+  min-width: 0;
+}
+
+/* Vditor limita la vista previa a 768 px; en pantalla partida debe ocupar su mitad entera */
+.vditor-preview .vditor-reset {
+  max-width: none !important;
+}
+
+.vditor-preview {
+  border-left: none !important;
+}
+
+/* En pantalla partida el relleno lateral en % se calcularía sobre el ancho de toda la ventana:
+   con el separador presente, cada mitad usa un relleno fijo. */
+.vditor-content:has(> .mdv-splitter) > .vditor-sv {
+  padding: 24px 28px 30vh !important;
+}
+
+.vditor-content:has(> .mdv-splitter) > .vditor-preview .vditor-reset {
+  padding: 24px 32px 30vh !important;
+}
