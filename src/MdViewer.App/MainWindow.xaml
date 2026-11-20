@@ -1,4 +1,4 @@
-﻿<Window x:Class="MdViewer.App.MainWindow"
+<Window x:Class="MdViewer.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
@@ -25,7 +25,7 @@
         <!-- Los títulos del menú principal usan AccessText con el color del marco: así el color
              no se hereda a los submenús, que se dibujan sobre fondo claro u oscuro según el tema. -->
         <Menu DockPanel.Dock="Top" Background="{DynamicResource ChromeBackgroundBrush}" Padding="4,2">
-            <MenuItem>
+            <MenuItem AutomationProperties.Name="Archivo">
                 <MenuItem.Header>
                     <AccessText Text="_Archivo" Foreground="{DynamicResource ChromeForegroundBrush}" />
                 </MenuItem.Header>
@@ -38,7 +38,7 @@
                 <Separator />
                 <MenuItem Header="_Salir" Command="Close" />
             </MenuItem>
-            <MenuItem>
+            <MenuItem AutomationProperties.Name="Ver">
                 <MenuItem.Header>
                     <AccessText Text="_Ver" Foreground="{DynamicResource ChromeForegroundBrush}" />
                 </MenuItem.Header>
@@ -52,7 +52,7 @@
                     <MenuItem x:Name="ThemeSystemMenu" Header="Según el _sistema" IsCheckable="True" Tag="System" Click="OnThemeSelected" />
                 </MenuItem>
             </MenuItem>
-            <MenuItem>
+            <MenuItem AutomationProperties.Name="Ayuda">
                 <MenuItem.Header>
                     <AccessText Text="Ay_uda" Foreground="{DynamicResource ChromeForegroundBrush}" />
                 </MenuItem.Header>

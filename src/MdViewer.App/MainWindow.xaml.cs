@@ -32,6 +32,14 @@ public partial class MainWindow : Window
     private EditorMode _mode = EditorMode.Live;
     private bool _editorReady;
     private bool _editorChanged;
+
+    // Texto del documento al cargarlo y cómo lo devuelve el editor justo después de cargarlo.
+    // El editor puede normalizar el Markdown (espacios, saltos finales…); comparar con su propia
+    // versión inicial evita marcar como modificado un documento que el usuario no ha tocado y
+    // permite guardar el texto original sin reformatearlo.
+    private string _loadedText = string.Empty;
+    private string _editorBaseline = string.Empty;
+    private readonly DispatcherTimer _dirtyCheckTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
     private bool _closingConfirmed;
     private bool _checkingDisk;
 
@@ -50,6 +58,12 @@ public partial class MainWindow : Window
         _recoveryTimer.Tick += async (_, _) => await SaveRecoveryDraftAsync();
         _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Max(10, App.Settings.AutoSaveIntervalSeconds)) };
         _autoSaveTimer.Tick += async (_, _) => await AutoSaveAsync();
+        _dirtyCheckTimer.Tick += async (_, _) =>
+        {
+            _dirtyCheckTimer.Stop();
+            await SyncFromEditorAsync();
+            UpdateTitle();
+        };
 
         Loaded += async (_, _) => await InitializeAsync();
         Activated += async (_, _) => await CheckExternalChangesAsync();
@@ -150,17 +164,20 @@ public partial class MainWindow : Window
 
     private async Task ShowDocumentAsync(MarkdownDocument document)
     {
+        _dirtyCheckTimer.Stop();
         _document = document;
         _editorChanged = false;
         var folder = document.FilePath is null ? null : Path.GetDirectoryName(document.FilePath);
         await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode);
-        if (document.IsDirty)
-        {
-            _editorChanged = true;
-        }
+        _loadedText = document.Text;
+        _editorBaseline = await _editor.GetMarkdownAsync();
 
         UpdateTitle();
         StatusText.Text = document.FilePath ?? string.Empty;
+
+        // Foco de teclado al control WebView2 (ventana) y después al editor dentro de la página:
+        // sin lo primero, lo que se escribe no llega al editor hasta hacer clic en él.
+        EditorView.Focus();
         await _editor.FocusAsync();
     }
 
@@ -187,8 +204,12 @@ public partial class MainWindow : Window
     {
         if (_editorReady && _editorChanged)
         {
-            _document.UpdateText(await _editor.GetMarkdownAsync());
             _editorChanged = false;
+            var markdown = await _editor.GetMarkdownAsync();
+
+            // Si el editor vuelve a tener exactamente lo que tenía al cargar (p. ej. tras deshacer),
+            // el documento recupera su texto original byte a byte.
+            _document.UpdateText(string.Equals(markdown, _editorBaseline, StringComparison.Ordinal) ? _loadedText : markdown);
         }
     }
 
@@ -278,6 +299,10 @@ public partial class MainWindow : Window
         return true;
     }
 
+    /// <summary>
+    /// El editor avisa de cada edición. Marcamos el título al momento y, tras una pausa breve,
+    /// comparamos el texto real: si no ha cambiado (deshacer, teclas sin efecto) se quita la marca.
+    /// </summary>
     private void OnEditorChanged()
     {
         if (!_editorChanged)
@@ -285,6 +310,9 @@ public partial class MainWindow : Window
             _editorChanged = true;
             UpdateTitle();
         }
+
+        _dirtyCheckTimer.Stop();
+        _dirtyCheckTimer.Start();
     }
 
     private async Task SaveRecoveryDraftAsync()
@@ -595,6 +623,7 @@ public partial class MainWindow : Window
 
     private void PrepareForExit()
     {
+        _dirtyCheckTimer.Stop();
         _recoveryTimer.Stop();
         _autoSaveTimer.Stop();
         _updates.ApplyOnExit();
