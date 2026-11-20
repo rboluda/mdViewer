@@ -60,6 +60,7 @@ jobs:
         run: >
           vpk pack --packId mdViewer --packVersion ${{ steps.version.outputs.value }}
           --packDir publish --mainExe mdViewer.exe --packTitle mdViewer --packAuthors "mdViewer contributors"
+          --icon src/MdViewer.App/Assets/mdViewer.ico
 
       - name: Subir a GitHub Releases
         run: >

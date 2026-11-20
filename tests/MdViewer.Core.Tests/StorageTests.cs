@@ -48,7 +48,7 @@ public class StorageTests
 
         var settings = new SettingsStore(path).Load();
 
-        Assert.Equal(ThemeMode.System, settings.Theme);
+        Assert.Equal(ThemeMode.Blue, settings.Theme);
         Assert.True(File.Exists(path + ".corrupt"));
     }
 

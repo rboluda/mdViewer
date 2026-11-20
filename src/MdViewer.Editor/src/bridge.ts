@@ -8,7 +8,8 @@
  */
 
 export type EditorMode = "ir" | "sv" | "wysiwyg";
-export type EditorTheme = "light" | "dark";
+/** "blue" es el tema de la marca (azul y blanco) y el predeterminado. */
+export type EditorTheme = "blue" | "light" | "dark";
 
 export type HostMessage =
   | { type: "ready" }

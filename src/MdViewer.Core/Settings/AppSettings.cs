@@ -2,15 +2,17 @@ namespace MdViewer.Core.Settings;
 
 public enum ThemeMode
 {
-    System,
+    /// <summary>Tema de la marca: azul y blanco (predeterminado).</summary>
+    Blue,
     Light,
     Dark,
+    System,
 }
 
 /// <summary>Preferencias del usuario. Todos los valores tienen un valor por defecto seguro.</summary>
 public sealed class AppSettings
 {
-    public ThemeMode Theme { get; set; } = ThemeMode.System;
+    public ThemeMode Theme { get; set; } = ThemeMode.Blue;
 
     public bool AutoSave { get; set; }
 

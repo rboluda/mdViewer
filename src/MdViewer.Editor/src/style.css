@@ -1,11 +1,43 @@
+/*
+ * Temas del documento.
+ *  - blue  (predeterminado): azul y blanco, colores del icono (#006EE8 / #0152B4).
+ *  - light: neutro claro.
+ *  - dark:  oscuro.
+ */
 :root {
   --page-bg: #ffffff;
   --page-fg: #24292f;
+  --accent: #0969da;
+  --accent-strong: #0550ae;
+  --accent-soft: #eef2f6;
+  --selection: #cfe3ff;
+  --code-bg: #f6f8fa;
+  --table-head-bg: #f6f8fa;
+  --border: #d0d7de;
+}
+
+:root[data-theme="blue"] {
+  --page-bg: #ffffff;
+  --page-fg: #1c2733;
+  --accent: #006ee8;
+  --accent-strong: #0152b4;
+  --accent-soft: #eaf3ff;
+  --selection: #cce2ff;
+  --code-bg: #f2f7fe;
+  --table-head-bg: #e6f0fd;
+  --border: #c7dcf7;
 }
 
 :root[data-theme="dark"] {
   --page-bg: #1e1e1e;
   --page-fg: #d4d4d4;
+  --accent: #4ea1ff;
+  --accent-strong: #7bb8ff;
+  --accent-soft: #1d2a3a;
+  --selection: #264f78;
+  --code-bg: #262626;
+  --table-head-bg: #2a2a2a;
+  --border: #3c3c3c;
 }
 
 html,
@@ -14,6 +46,10 @@ body {
   height: 100%;
   background: var(--page-bg);
   color: var(--page-fg);
+}
+
+::selection {
+  background: var(--selection);
 }
 
 #editor {
@@ -26,16 +62,107 @@ body {
   border: none !important;
 }
 
+.vditor-ir,
+.vditor-sv,
+.vditor-wysiwyg {
+  background: var(--page-bg) !important;
+}
+
 .vditor-reset {
   max-width: 860px;
   margin: 0 auto;
   padding: 48px 40px 30vh !important;
   font-size: 16px;
   line-height: 1.7;
+  color: var(--page-fg) !important;
+  caret-color: var(--accent);
 }
 
-.vditor-ir,
-.vditor-sv,
-.vditor-wysiwyg {
-  background: var(--page-bg) !important;
+/* ── Elementos del documento con el color de acento ── */
+
+.vditor-reset h1,
+.vditor-reset h2,
+.vditor-reset h3,
+.vditor-reset h4,
+.vditor-reset h5,
+.vditor-reset h6 {
+  color: var(--accent-strong);
+}
+
+.vditor-reset h1,
+.vditor-reset h2 {
+  border-bottom-color: var(--border) !important;
+}
+
+.vditor-reset a,
+.vditor-reset a:visited,
+.vditor-ir__link,
+.vditor-sv__marker--link {
+  color: var(--accent) !important;
+}
+
+.vditor-reset blockquote {
+  border-left: 4px solid var(--accent) !important;
+  background: var(--accent-soft) !important;
+  color: inherit !important;
+  padding: 0.4em 1em !important;
+  border-radius: 0 6px 6px 0;
+}
+
+.vditor-reset code:not(.hljs):not(.highlight-chroma) {
+  background: var(--code-bg) !important;
+  color: var(--accent-strong);
+}
+
+.vditor-reset pre > code {
+  background: var(--code-bg) !important;
+  border-radius: 6px;
+}
+
+.vditor-reset table th {
+  background: var(--table-head-bg) !important;
+  color: var(--accent-strong);
+}
+
+.vditor-reset table td,
+.vditor-reset table th {
+  border-color: var(--border) !important;
+}
+
+.vditor-reset hr {
+  background-color: var(--border) !important;
+}
+
+.vditor-reset input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+.vditor-reset mark {
+  background: var(--selection);
+  color: inherit;
+}
+
+/* Marcadores de sintaxis que aparecen al editar (##, **, etc.) */
+.vditor-ir__marker,
+.vditor-ir__marker--heading {
+  color: var(--accent) !important;
+  opacity: 0.6;
+}
+
+/* Diagramas Mermaid con la paleta del tema azul */
+:root[data-theme="blue"] .language-mermaid .node rect,
+:root[data-theme="blue"] .language-mermaid .node circle,
+:root[data-theme="blue"] .language-mermaid .node polygon {
+  fill: var(--accent-soft) !important;
+  stroke: var(--accent) !important;
+}
+
+:root[data-theme="blue"] .language-mermaid .edgePath .path,
+:root[data-theme="blue"] .language-mermaid .flowchart-link {
+  stroke: var(--accent-strong) !important;
+}
+
+:root[data-theme="blue"] .language-mermaid marker path {
+  fill: var(--accent-strong) !important;
+  stroke: var(--accent-strong) !important;
 }

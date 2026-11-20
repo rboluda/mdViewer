@@ -8,7 +8,7 @@ import { postToHost, type EditorApi, type EditorMode, type EditorTheme, type Loa
 const localCdn = new URL("./vditor", window.location.href).href.replace(/\/$/, "");
 
 let vditor: Vditor | null = null;
-let currentTheme: EditorTheme = "light";
+let currentTheme: EditorTheme = "blue";
 let currentMode: EditorMode = "ir";
 let suppressChange = false;
 
@@ -86,6 +86,7 @@ function create(markdown: string): void {
   vditor = created;
 }
 
+/** El tema azul usa la base clara de Vditor y se completa con CSS (style.css, [data-theme="blue"]). */
 function applyThemeClass(theme: EditorTheme): void {
   document.documentElement.dataset.theme = theme;
 }
@@ -155,4 +156,4 @@ window.addEventListener("error", (event) => postToHost({ type: "error", message:
 window.addEventListener("unhandledrejection", (event) => postToHost({ type: "error", message: String(event.reason) }));
 
 // Arranque: documento vacío hasta que el host envíe uno.
-api.load("", { theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light" });
+api.load("", { theme: "blue" });

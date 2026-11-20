@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MdViewer.App.Editor;
+using MdViewer.App.Theming;
 using MdViewer.App.Updates;
 using MdViewer.Core.Diagnostics;
 using MdViewer.Core.Documents;
@@ -152,7 +153,7 @@ public partial class MainWindow : Window
         _document = document;
         _editorChanged = false;
         var folder = document.FilePath is null ? null : Path.GetDirectoryName(document.FilePath);
-        await _editor.LoadAsync(document.Text, folder, IsDarkTheme(), _mode);
+        await _editor.LoadAsync(document.Text, folder, EditorTheme(), _mode);
         if (document.IsDirty)
         {
             _editorChanged = true;
@@ -414,7 +415,7 @@ public partial class MainWindow : Window
             UpdateThemeMenu();
             if (_editorReady)
             {
-                await _editor.SetThemeAsync(IsDarkTheme());
+                await _editor.SetThemeAsync(EditorTheme());
             }
         }
     }
@@ -604,24 +605,14 @@ public partial class MainWindow : Window
 
     private void UpdateThemeMenu()
     {
-        ThemeSystemMenu.IsChecked = App.Settings.Theme == AppTheme.System;
+        ThemeBlueMenu.IsChecked = App.Settings.Theme == AppTheme.Blue;
         ThemeLightMenu.IsChecked = App.Settings.Theme == AppTheme.Light;
         ThemeDarkMenu.IsChecked = App.Settings.Theme == AppTheme.Dark;
-        Application.Current.ThemeMode = App.Settings.Theme switch
-        {
-            AppTheme.Light => System.Windows.ThemeMode.Light,
-            AppTheme.Dark => System.Windows.ThemeMode.Dark,
-            _ => System.Windows.ThemeMode.System,
-        };
+        ThemeSystemMenu.IsChecked = App.Settings.Theme == AppTheme.System;
+        ThemeManager.Apply(this, App.Settings.Theme);
     }
 
-    private static bool IsDarkTheme() => App.Settings.Theme switch
-    {
-        AppTheme.Dark => true,
-        AppTheme.Light => false,
-        _ => Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-            "AppsUseLightTheme", 1) is int light && light == 0,
-    };
+    private static string EditorTheme() => ThemeManager.EditorTheme(App.Settings.Theme);
 
     private void RestorePlacement()
     {

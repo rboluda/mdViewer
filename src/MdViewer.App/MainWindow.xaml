@@ -4,6 +4,8 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="mdViewer" Width="1100" Height="760" MinWidth="480" MinHeight="320"
         WindowStartupLocation="CenterScreen"
+        Icon="Assets/mdViewer.ico"
+        Background="{DynamicResource DocumentBackgroundBrush}"
         AllowDrop="True">
 
     <Window.CommandBindings>
@@ -20,8 +22,13 @@
     </Window.InputBindings>
 
     <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_Archivo">
+        <!-- Los títulos del menú principal usan AccessText con el color del marco: así el color
+             no se hereda a los submenús, que se dibujan sobre fondo claro u oscuro según el tema. -->
+        <Menu DockPanel.Dock="Top" Background="{DynamicResource ChromeBackgroundBrush}" Padding="4,2">
+            <MenuItem>
+                <MenuItem.Header>
+                    <AccessText Text="_Archivo" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                </MenuItem.Header>
                 <MenuItem Header="_Nuevo" Command="New" InputGestureText="Ctrl+N" />
                 <MenuItem Header="_Abrir…" Command="Open" InputGestureText="Ctrl+O" />
                 <MenuItem x:Name="RecentMenu" Header="Abrir _reciente" />
@@ -31,17 +38,24 @@
                 <Separator />
                 <MenuItem Header="_Salir" Command="Close" />
             </MenuItem>
-            <MenuItem Header="_Ver">
+            <MenuItem>
+                <MenuItem.Header>
+                    <AccessText Text="_Ver" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                </MenuItem.Header>
                 <MenuItem x:Name="SourceModeMenu" Header="Modo _código fuente" IsCheckable="True"
                           InputGestureText="Ctrl+/" Click="OnToggleSourceMode" />
                 <Separator />
                 <MenuItem Header="_Tema">
-                    <MenuItem x:Name="ThemeSystemMenu" Header="Según el _sistema" IsCheckable="True" Tag="System" Click="OnThemeSelected" />
+                    <MenuItem x:Name="ThemeBlueMenu" Header="_Azul (predeterminado)" IsCheckable="True" Tag="Blue" Click="OnThemeSelected" />
                     <MenuItem x:Name="ThemeLightMenu" Header="_Claro" IsCheckable="True" Tag="Light" Click="OnThemeSelected" />
                     <MenuItem x:Name="ThemeDarkMenu" Header="_Oscuro" IsCheckable="True" Tag="Dark" Click="OnThemeSelected" />
+                    <MenuItem x:Name="ThemeSystemMenu" Header="Según el _sistema" IsCheckable="True" Tag="System" Click="OnThemeSelected" />
                 </MenuItem>
             </MenuItem>
-            <MenuItem Header="Ay_uda">
+            <MenuItem>
+                <MenuItem.Header>
+                    <AccessText Text="Ay_uda" Foreground="{DynamicResource ChromeForegroundBrush}" />
+                </MenuItem.Header>
                 <MenuItem Header="Buscar _actualizaciones" Click="OnCheckUpdates" />
                 <MenuItem Header="Abrir carpeta de _registros" Click="OnOpenLogs" />
                 <Separator />
@@ -49,15 +63,16 @@
             </MenuItem>
         </Menu>
 
-        <StatusBar DockPanel.Dock="Bottom">
+        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource ChromeBackgroundBrush}"
+                   TextElement.Foreground="{DynamicResource ChromeForegroundBrush}" Padding="6,0">
             <StatusBarItem>
-                <TextBlock x:Name="StatusText" />
+                <TextBlock x:Name="StatusText" Foreground="{DynamicResource ChromeForegroundBrush}" />
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="UpdateButton" Visibility="Collapsed" Padding="8,0" Margin="0,0,12,0"
                             Click="OnApplyUpdate" />
-                    <TextBlock x:Name="StatsText" />
+                    <TextBlock x:Name="StatsText" Foreground="{DynamicResource ChromeForegroundBrush}" />
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
@@ -65,7 +80,7 @@
         <Grid>
             <wv2:WebView2 x:Name="EditorView" DefaultBackgroundColor="Transparent" />
             <TextBlock x:Name="LoadingText" Text="Cargando editor…" HorizontalAlignment="Center"
-                       VerticalAlignment="Center" Opacity="0.6" />
+                       VerticalAlignment="Center" Opacity="0.6" TextAlignment="Center" />
         </Grid>
     </DockPanel>
 </Window>

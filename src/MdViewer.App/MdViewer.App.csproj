@@ -8,6 +8,10 @@
     <RootNamespace>MdViewer.App</RootNamespace>
     <StartupObject>MdViewer.App.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Se genera desde icon.png con tools/make-icon.ps1 -->
+    <ApplicationIcon>Assets\mdViewer.ico</ApplicationIcon>
+    <!-- Necesario para el código que genera [LibraryImport] (llamadas a dwmapi) -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- WPF0001: ThemeMode (Fluent) es experimental en WPF; CA2007: en una app WPF queremos volver al hilo de UI -->
     <NoWarn>$(NoWarn);WPF0001;CA2007</NoWarn>
@@ -15,6 +19,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MdViewer.Core\MdViewer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\mdViewer.ico" />
   </ItemGroup>
 
   <ItemGroup>

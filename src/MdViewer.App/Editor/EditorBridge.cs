@@ -78,12 +78,12 @@ public sealed class EditorBridge
     }
 
     /// <summary>Carga un documento. <paramref name="documentFolder"/> resuelve imágenes y enlaces relativos.</summary>
-    public async Task LoadAsync(string markdown, string? documentFolder, bool dark, EditorMode mode)
+    public async Task LoadAsync(string markdown, string? documentFolder, string theme, EditorMode mode)
     {
         MapDocumentFolder(documentFolder);
         _ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var options = new { theme = dark ? "dark" : "light", mode = ToJs(mode), baseUrl = documentFolder is null ? null : $"https://{DocumentHost}/" };
+        var options = new { theme, mode = ToJs(mode), baseUrl = documentFolder is null ? null : $"https://{DocumentHost}/" };
         await ExecuteAsync($"window.mdEditor.load({JsonSerializer.Serialize(markdown)}, {JsonSerializer.Serialize(options)})");
         await _ready.Task.WaitAsync(TimeSpan.FromSeconds(30));
     }
@@ -94,7 +94,8 @@ public sealed class EditorBridge
         return JsonSerializer.Deserialize<string>(json) ?? string.Empty;
     }
 
-    public Task SetThemeAsync(bool dark) => ExecuteAsync($"window.mdEditor.setTheme('{(dark ? "dark" : "light")}')");
+    /// <summary>Tema del editor web: "blue", "light" o "dark".</summary>
+    public Task SetThemeAsync(string theme) => ExecuteAsync($"window.mdEditor.setTheme({JsonSerializer.Serialize(theme)})");
 
     public async Task SetModeAsync(EditorMode mode)
     {
