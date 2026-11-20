@@ -58,6 +58,25 @@ function decorateAlerts(): void {
   });
 }
 
+/**
+ * Iconos de la barra de herramientas. Vditor los carga insertando el script "en línea", y la
+ * política de seguridad de la página (CSP) bloquea los scripts en línea: se cargan aquí como
+ * archivo propio con el mismo id, y Vditor ve que ya están y no lo intenta.
+ * Vditor borra ese elemento al destruirse; si los iconos ya están en la página, basta con un
+ * marcador que no se ejecuta (así no se duplican al recrear el editor).
+ */
+function ensureToolbarIcons(): void {
+  if (document.getElementById("vditorIconScript")) return;
+  const script = document.createElement("script");
+  script.id = "vditorIconScript";
+  if (document.getElementById("vditor-icon-bold")) {
+    script.type = "text/plain";
+  } else {
+    script.src = `${localCdn}/dist/js/icons/ant.js`;
+  }
+  document.head.appendChild(script);
+}
+
 function create(markdown: string): void {
   // Se destruye y se suelta la instancia anterior ANTES de crear la nueva:
   // Vditor invoca callbacks durante el constructor y no deben tocar una instancia destruida.
@@ -66,6 +85,7 @@ function create(markdown: string): void {
   commands.attach(null);
   search.clear();
   previous?.destroy();
+  ensureToolbarIcons();
   suppressChange = true;
 
   const split = currentMode === "split";
