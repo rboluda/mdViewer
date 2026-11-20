@@ -1,0 +1,71 @@
+﻿<Window x:Class="MdViewer.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        Title="mdViewer" Width="1100" Height="760" MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True">
+
+    <Window.CommandBindings>
+        <CommandBinding Command="New" Executed="OnNew" />
+        <CommandBinding Command="Open" Executed="OnOpen" />
+        <CommandBinding Command="Save" Executed="OnSave" />
+        <CommandBinding Command="SaveAs" Executed="OnSaveAs" />
+        <CommandBinding Command="Close" Executed="OnExit" />
+    </Window.CommandBindings>
+
+    <Window.InputBindings>
+        <KeyBinding Command="SaveAs" Key="S" Modifiers="Ctrl+Shift" />
+        <KeyBinding Command="Close" Key="W" Modifiers="Ctrl" />
+    </Window.InputBindings>
+
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_Archivo">
+                <MenuItem Header="_Nuevo" Command="New" InputGestureText="Ctrl+N" />
+                <MenuItem Header="_Abrir…" Command="Open" InputGestureText="Ctrl+O" />
+                <MenuItem x:Name="RecentMenu" Header="Abrir _reciente" />
+                <Separator />
+                <MenuItem Header="_Guardar" Command="Save" InputGestureText="Ctrl+S" />
+                <MenuItem Header="Guardar _como…" Command="SaveAs" InputGestureText="Ctrl+Shift+S" />
+                <Separator />
+                <MenuItem Header="_Salir" Command="Close" />
+            </MenuItem>
+            <MenuItem Header="_Ver">
+                <MenuItem x:Name="SourceModeMenu" Header="Modo _código fuente" IsCheckable="True"
+                          InputGestureText="Ctrl+/" Click="OnToggleSourceMode" />
+                <Separator />
+                <MenuItem Header="_Tema">
+                    <MenuItem x:Name="ThemeSystemMenu" Header="Según el _sistema" IsCheckable="True" Tag="System" Click="OnThemeSelected" />
+                    <MenuItem x:Name="ThemeLightMenu" Header="_Claro" IsCheckable="True" Tag="Light" Click="OnThemeSelected" />
+                    <MenuItem x:Name="ThemeDarkMenu" Header="_Oscuro" IsCheckable="True" Tag="Dark" Click="OnThemeSelected" />
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="Ay_uda">
+                <MenuItem Header="Buscar _actualizaciones" Click="OnCheckUpdates" />
+                <MenuItem Header="Abrir carpeta de _registros" Click="OnOpenLogs" />
+                <Separator />
+                <MenuItem Header="Acerca _de mdViewer" Click="OnAbout" />
+            </MenuItem>
+        </Menu>
+
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock x:Name="StatusText" />
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="UpdateButton" Visibility="Collapsed" Padding="8,0" Margin="0,0,12,0"
+                            Click="OnApplyUpdate" />
+                    <TextBlock x:Name="StatsText" />
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+
+        <Grid>
+            <wv2:WebView2 x:Name="EditorView" DefaultBackgroundColor="Transparent" />
+            <TextBlock x:Name="LoadingText" Text="Cargando editor…" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" Opacity="0.6" />
+        </Grid>
+    </DockPanel>
+</Window>

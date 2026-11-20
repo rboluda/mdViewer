@@ -1,0 +1,68 @@
+name: release
+
+# Publica una versión al subir una etiqueta: git tag v0.1.0 && git push origin v0.1.0
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  VELOPACK_VERSION: 1.2.161 # debe coincidir con el paquete NuGet Velopack de MdViewer.App
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versión desde la etiqueta
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: src/MdViewer.Editor/package-lock.json
+
+      - name: Editor web
+        working-directory: src/MdViewer.Editor
+        run: |
+          npm ci
+          npm run build
+
+      - name: Tests
+        run: dotnet test --solution MdViewer.slnx -c Release
+
+      - name: Publicar
+        run: >
+          dotnet publish src/MdViewer.App/MdViewer.App.csproj -c Release -r win-x64 --self-contained
+          -p:Version=${{ steps.version.outputs.value }} -o publish
+
+      - name: Instalar vpk
+        run: dotnet tool install -g vpk --version ${{ env.VELOPACK_VERSION }}
+
+      # Descarga la versión anterior para generar actualizaciones delta (falla sin problema en la primera release)
+      - name: Descargar release anterior
+        continue-on-error: true
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Empaquetar
+        run: >
+          vpk pack --packId mdViewer --packVersion ${{ steps.version.outputs.value }}
+          --packDir publish --mainExe mdViewer.exe --packTitle mdViewer --packAuthors "mdViewer contributors"
+
+      - name: Subir a GitHub Releases
+        run: >
+          vpk upload github --repoUrl https://github.com/${{ github.repository }}
+          --publish --releaseName "mdViewer ${{ steps.version.outputs.value }}"
+          --tag ${{ github.ref_name }} --token ${{ secrets.GITHUB_TOKEN }}

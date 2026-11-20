@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: src/MdViewer.Editor/package-lock.json
+
+      - name: Editor web
+        working-directory: src/MdViewer.Editor
+        run: |
+          npm ci
+          npm run build
+
+      - name: Compilar
+        run: dotnet build MdViewer.slnx -c Release
+
+      - name: Tests
+        run: dotnet test --solution MdViewer.slnx -c Release --no-build

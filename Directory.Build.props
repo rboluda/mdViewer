@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <Deterministic>true</Deterministic>
+
+    <!-- La versión real la inyecta el pipeline de release con -p:Version=x.y.z -->
+    <Version>0.1.0</Version>
+    <Company>mdViewer</Company>
+    <Product>mdViewer</Product>
+    <Copyright>Copyright © mdViewer contributors</Copyright>
+    <RepositoryUrl>https://github.com/rboluda/mdViewer</RepositoryUrl>
+  </PropertyGroup>
+</Project>

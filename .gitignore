@@ -1,0 +1,17 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+publish/
+Releases/
+
+# Node / editor web
+node_modules/
+src/MdViewer.Editor/dist/
+
+# SO
+Thumbs.db
+.DS_Store

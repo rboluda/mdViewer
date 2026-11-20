@@ -1,0 +1,20 @@
+{
+  "name": "mdviewer-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Motor de edición de mdViewer que se ejecuta dentro de WebView2",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "vditor": "^4.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-static-copy": "^4.1.1"
+  }
+}

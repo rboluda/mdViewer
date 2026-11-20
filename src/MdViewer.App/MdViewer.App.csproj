@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>mdViewer</AssemblyName>
+    <RootNamespace>MdViewer.App</RootNamespace>
+    <StartupObject>MdViewer.App.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- WPF0001: ThemeMode (Fluent) es experimental en WPF; CA2007: en una app WPF queremos volver al hilo de UI -->
+    <NoWarn>$(NoWarn);WPF0001;CA2007</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MdViewer.Core\MdViewer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
+  </ItemGroup>
+
+  <!-- ===== Editor web (src/MdViewer.Editor) ===== -->
+  <PropertyGroup>
+    <EditorProjectDir>$(MSBuildThisFileDirectory)..\MdViewer.Editor\</EditorProjectDir>
+    <EditorDistDir>$(EditorProjectDir)dist\</EditorDistDir>
+  </PropertyGroup>
+
+  <!-- Compila el editor si aún no existe el bundle (primera compilación o clon limpio).
+       Para forzarlo: dotnet build -p:BuildEditor=true -->
+  <Target Name="BuildEditor" BeforeTargets="AssignTargetPaths"
+          Condition="'$(BuildEditor)' == 'true' Or !Exists('$(EditorDistDir)index.html')">
+    <Exec Command="npm ci" WorkingDirectory="$(EditorProjectDir)" Condition="!Exists('$(EditorProjectDir)node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="$(EditorProjectDir)" />
+    <ItemGroup>
+      <EditorFiles Include="$(EditorDistDir)**\*" />
+      <Content Include="@(EditorFiles)" Link="editor\%(RecursiveDir)%(Filename)%(Extension)"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <Content Include="$(EditorDistDir)**\*" Link="editor\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
