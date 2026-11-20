@@ -13,8 +13,8 @@ public static class Program
         // Debe ser lo primero: Velopack gestiona aquí los eventos de instalación,
         // actualización y desinstalación (y puede terminar el proceso).
         VelopackApp.Build()
-            .OnAfterInstallFastCallback(_ => RunHook("instalación", () => FileAssociation.Register(FileAssociation.StableExePath())))
-            .OnAfterUpdateFastCallback(_ => RunHook("actualización", () => FileAssociation.Register(FileAssociation.StableExePath())))
+            .OnAfterInstallFastCallback(v => RunHook("instalación", () => AfterInstallOrUpdate(v.ToString())))
+            .OnAfterUpdateFastCallback(v => RunHook("actualización", () => AfterInstallOrUpdate(v.ToString())))
             .OnBeforeUninstallFastCallback(_ => RunHook("desinstalación", FileAssociation.Unregister))
             .Run();
 
@@ -32,6 +32,16 @@ public static class Program
         var app = new App(args);
         app.InitializeComponent();
         return app.Run();
+    }
+
+    /// <summary>
+    /// Tras instalar o actualizar (Velopack lo ejecuta como administrador en las instalaciones en
+    /// Archivos de programa): asociación con .md y versión visible en "Aplicaciones instaladas".
+    /// </summary>
+    private static void AfterInstallOrUpdate(string version)
+    {
+        FileAssociation.Register(FileAssociation.StableExePath());
+        UninstallEntry.TryUpdate(version);
     }
 
     private static int RunHook(string name, Action action)
