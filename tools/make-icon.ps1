@@ -1,12 +1,10 @@
 # Genera src/MdViewer.App/Assets/mdViewer.ico a partir de icon.png (raíz del repo).
-# Recorta un cuadrado centrado en el logotipo y crea una imagen por tamaño (PNG dentro del ICO).
+# icon.png es el icono completo (cuadrado, esquinas transparentes); se crea una imagen por tamaño
+# (PNG dentro del ICO).
 # Uso: pwsh tools/make-icon.ps1
 param(
     [string]$Source = (Join-Path $PSScriptRoot '..\icon.png'),
-    [string]$Output = (Join-Path $PSScriptRoot '..\src\MdViewer.App\Assets\mdViewer.ico'),
-    [int]$CropSize = 940,
-    [int]$CenterX = 775,
-    [int]$CenterY = 510
+    [string]$Output = (Join-Path $PSScriptRoot '..\src\MdViewer.App\Assets\mdViewer.ico')
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -14,24 +12,14 @@ $sizes = 16, 24, 32, 48, 64, 128, 256
 
 $src = [System.Drawing.Bitmap]::FromFile((Resolve-Path $Source))
 try {
-    $crop = [System.Drawing.Rectangle]::new($CenterX - $CropSize / 2, $CenterY - $CropSize / 2, $CropSize, $CropSize)
+    $crop = [System.Drawing.Rectangle]::new(0, 0, $src.Width, $src.Height)
     $frames = foreach ($size in $sizes) {
         $bmp = [System.Drawing.Bitmap]::new($size, $size)
         $g = [System.Drawing.Graphics]::FromImage($bmp)
         $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
         $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-        # Fondo blanco con esquinas redondeadas (estilo icono de Windows 11)
-        $radius = [Math]::Max(2, [int]($size * 0.18))
-        $path = [System.Drawing.Drawing2D.GraphicsPath]::new()
-        $d = $radius * 2
-        $path.AddArc(0, 0, $d, $d, 180, 90)
-        $path.AddArc($size - $d - 1, 0, $d, $d, 270, 90)
-        $path.AddArc($size - $d - 1, $size - $d - 1, $d, $d, 0, 90)
-        $path.AddArc(0, $size - $d - 1, $d, $d, 90, 90)
-        $path.CloseFigure()
-        $g.FillPath([System.Drawing.Brushes]::White, $path)
-        $path.Dispose()
+        $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
         $g.DrawImage($src, [System.Drawing.Rectangle]::new(0, 0, $size, $size), $crop, [System.Drawing.GraphicsUnit]::Pixel)
         $g.Dispose()
         $ms = [System.IO.MemoryStream]::new()

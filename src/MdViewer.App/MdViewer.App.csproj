@@ -8,7 +8,7 @@
     <RootNamespace>MdViewer.App</RootNamespace>
     <StartupObject>MdViewer.App.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Se genera desde icon.png con tools/make-icon.ps1 -->
+    <!-- Se genera desde icon.png con tools/make-icon.ps1 (pwsh) -->
     <ApplicationIcon>Assets\mdViewer.ico</ApplicationIcon>
     <!-- Necesario para el código que genera [LibraryImport] (llamadas a dwmapi) -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

@@ -30,7 +30,7 @@ Editor Markdown **libre y de código abierto** para Windows, con edición en viv
 - Funciona sin conexión: no se carga nada de internet.
 - Tema azul y blanco con los colores del icono (predeterminado), además de claro, oscuro y según el sistema.
 
-El icono se genera desde `icon.png` con `tools/make-icon.ps1`.
+El icono se genera desde `icon.png` (icono completo con esquinas transparentes) con `tools/make-icon.ps1`.
 
 ## Instalar
 
