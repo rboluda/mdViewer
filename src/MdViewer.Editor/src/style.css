@@ -400,4 +400,8 @@ body {
   overflow-wrap: anywhere;
   word-break: normal;
   overflow-x: hidden !important;
+  /* Vditor limita la altura del bloque a la de la pantalla (estilo en línea): con el ajuste
+     activado el bloque crece lo necesario y no aparece barra vertical. */
+  max-height: none !important;
+  overflow-y: visible !important;
 }

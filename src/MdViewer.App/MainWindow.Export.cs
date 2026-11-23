@@ -131,7 +131,25 @@ public partial class MainWindow
             .vditor-reset blockquote { border-left: 4px solid {{accent}}; padding: .4em 1em; }
             .vditor-reset img { max-width: 100%; }
             .vditor-reset table { border-collapse: collapse; }
-            @media print { .vditor-reset { padding: 0; max-width: none; } h1, h2, h3 { break-after: avoid; } pre, table, img, blockquote { break-inside: avoid; } }
+            /* En un documento exportado no hay barras de desplazamiento que valgan: el código y las
+               tablas se ajustan al ancho de la página. Vditor fija además una altura máxima en
+               línea a los bloques de código, que aquí se anula. */
+            .vditor-reset pre, .vditor-reset pre > code {
+              white-space: pre-wrap !important; overflow-wrap: anywhere; word-break: normal;
+              overflow: visible !important; max-height: none !important; }
+            .vditor-reset .vditor-copy { display: none !important; }
+            .vditor-reset table { display: table !important; width: 100% !important; max-width: 100%;
+              overflow: visible !important; table-layout: auto; }
+            /* break-word (no anywhere): las columnas conservan el ancho de su palabra más larga y solo
+               se parten las palabras que no caben enteras (URL largas, por ejemplo). */
+            .vditor-reset td, .vditor-reset th { white-space: normal !important; overflow-wrap: break-word; word-break: normal; }
+            ::-webkit-scrollbar { display: none; }
+            @media print {
+              .vditor-reset { padding: 0; max-width: none; }
+              h1, h2, h3 { break-after: avoid; }
+              img, blockquote, tr { break-inside: avoid; }
+              pre { break-inside: auto; }
+            }
             """;
     }
 

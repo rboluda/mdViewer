@@ -178,6 +178,25 @@ function normalize(text: string): string[] {
   return text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
 }
 
+/**
+ * Palabras del texto seleccionado en el código, sin sintaxis de Markdown. La selección puede cortar
+ * una marca a medias (p. ej. "**negrita" sin los asteriscos de cierre): entonces el conversor la deja
+ * tal cual, así que además se quitan de cada palabra los símbolos de formato y la parte (url) de los enlaces.
+ */
+function sourceWords(selected: string): string[] {
+  const text = markdownToText(selected)
+    .replace(/!?\[([^\]]*)\]\([^)]*\)?/g, "$1") // enlaces e imágenes, aunque estén cortados
+    .replace(/\]\([^)\s]*\)?/g, " ") // resto de un enlace cortado por la izquierda: "](url)"
+    .replace(/<\/?[a-z][^>]*>?/gi, " "); // etiquetas HTML (<u>, <br>…)
+  const words = normalize(text)
+    .map((word) => word.replace(/[*~`=\[\]]+/g, "").replace(/^[#>|]+/, ""))
+    // Palabras que solo eran marcas (viñetas, títulos, citas, separadores de tabla).
+    .filter((word) => word.length > 0 && !/^[-+#>|:]+$/.test(word));
+  // El número de una lista numerada no es texto en el resultado.
+  if (words.length > 1 && /^\d+[.)]$/.test(words[0])) words.shift();
+  return words;
+}
+
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -226,7 +245,7 @@ function setHighlight(range: Range | null): void {
 /** Código → resultado: resalta en la vista previa el texto equivalente al seleccionado en el código. */
 function mirrorSourceSelection(area: HTMLTextAreaElement, preview: HTMLElement): void {
   const selected = area.value.substring(area.selectionStart, area.selectionEnd);
-  const words = normalize(markdownToText(selected));
+  const words = sourceWords(selected);
   if (!words.length) {
     setHighlight(null);
     return;
