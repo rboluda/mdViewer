@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -444,47 +444,17 @@ public partial class MainWindow : Window
 
     private async Task AutoSaveAsync()
     {
+        // Nunca se guarda solo encima de los cambios de otro programa: antes se pregunta.
+        if (_checkingDisk || _document.HasChangedOnDisk())
+        {
+            await CheckExternalChangesAsync();
+            return;
+        }
+
         await SyncFromEditorAsync();
         if (_document.IsDirty && _document.FilePath is not null && !_readOnly)
         {
             await SaveAsync();
-        }
-    }
-
-    private async Task CheckExternalChangesAsync()
-    {
-        if (_checkingDisk || !_editorReady || !_document.HasChangedOnDisk())
-        {
-            return;
-        }
-
-        _checkingDisk = true;
-        try
-        {
-            await SyncFromEditorAsync();
-            var reload = !_document.IsDirty || MessageBox.Show(this,
-                $"{_document.DisplayName} se ha modificado fuera de mdViewer.\n\n¿Recargar y perder tus cambios?",
-                "Archivo modificado", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
-
-            if (reload)
-            {
-                await _document.ReloadAsync();
-                await ShowDocumentAsync(_document);
-                StatusText.Text = "Recargado desde disco";
-            }
-            else
-            {
-                // Aceptamos la versión del usuario; no volvemos a preguntar por este cambio externo.
-                _document.UpdateText(_document.Text);
-            }
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log.Warn("No se pudo comprobar el archivo en disco", ex);
-        }
-        finally
-        {
-            _checkingDisk = false;
         }
     }
 
@@ -619,6 +589,7 @@ public partial class MainWindow : Window
         _dirtyCheckTimer.Stop();
         _recoveryTimer.Stop();
         _autoSaveTimer.Stop();
+        StopWatchingFile();
         if (AllWindows.Count() <= 1)
         {
             _updates.ApplyOnExit();
@@ -630,6 +601,9 @@ public partial class MainWindow : Window
         var dirty = _editorChanged || _document.IsDirty ? "• " : string.Empty;
         var readOnly = _readOnly ? " (solo lectura)" : string.Empty;
         Title = $"{dirty}{_document.DisplayName}{readOnly} — mdViewer";
+
+        // Todo cambio de archivo (abrir, guardar como, mover, eliminar) acaba actualizando el título.
+        WatchDocumentFile();
     }
 
     private static string EditorTheme() => ThemeManager.EditorTheme(App.Settings.Theme);

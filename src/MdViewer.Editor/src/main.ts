@@ -8,6 +8,7 @@ import * as modes from "./modes";
 import * as outline from "./outline";
 import * as split from "./split";
 import * as codeblocks from "./codeblocks";
+import * as changes from "./changes";
 
 // Vditor carga sus módulos (lute, katex, mermaid, highlight.js…) bajo demanda desde `cdn`.
 // Apuntamos a la copia local para funcionar sin conexión.
@@ -370,6 +371,7 @@ function renderExport(id: string): void {
 
 const api: EditorApi = {
   load(markdown: string, options?: LoadOptions) {
+    changes.clear();
     if (options?.theme) {
       currentTheme = options.theme;
       applyThemeClass(currentTheme);
@@ -391,6 +393,31 @@ const api: EditorApi = {
     scheduleInfo();
   },
 
+  reloadValue(markdown: string, previous: string) {
+    // Recarga por cambios externos: se guarda el desplazamiento de cada zona que lo tenga
+    // (documento, código fuente, vista previa) y se restaura tras sustituir el contenido.
+    // Después se resalta unos segundos lo que ha cambiado respecto al texto anterior (el del
+    // archivo, no el que devuelve el editor, que puede reformatear tablas, listas…).
+    const root = document.getElementById("editor");
+    const scrolled = root
+      ? [...root.querySelectorAll<HTMLElement>("*")].filter((el) => el.scrollTop > 0).map((el) => ({ el, cls: el.className, top: el.scrollTop }))
+      : [];
+    vditor?.setValue(markdown);
+    scheduleInfo();
+    const restore = () => {
+      for (const { el, cls, top } of scrolled) {
+        const target = el.isConnected ? el : root?.getElementsByClassName(cls)[0];
+        if (target instanceof HTMLElement) target.scrollTop = top;
+      }
+    };
+    restore();
+    requestAnimationFrame(() => {
+      restore();
+      const count = changes.show(previous, markdown);
+      if (count > 0) postToHost({ type: "status", text: count === 1 ? "Recargado desde disco: 1 línea nueva o modificada (en verde)" : `Recargado desde disco: ${count} líneas nuevas o modificadas (en verde)` });
+    });
+  },
+
   setTheme(theme: EditorTheme) {
     currentTheme = theme;
     applyThemeClass(theme);
@@ -398,6 +425,7 @@ const api: EditorApi = {
   },
 
   setMode(mode: EditorMode) {
+    changes.clear();
     if (mode === currentMode || !vditor) {
       postToHost({ type: "ready" });
       return;

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Web.WebView2.Core;
@@ -137,6 +137,12 @@ public sealed class EditorBridge
     public Task<string> GetMarkdownAsync() => CallStringAsync("getMarkdown");
 
     public Task SetValueAsync(string markdown) => CallAsync("setValue", markdown);
+
+    /// <summary>
+    /// Sustituye el texto (recarga desde disco) conservando el desplazamiento de la vista y resalta
+    /// temporalmente las líneas que no estaban en <paramref name="previous"/>.
+    /// </summary>
+    public Task ReloadValueAsync(string markdown, string previous) => CallAsync("reloadValue", markdown, previous);
 
     public Task SetThemeAsync(string theme) => CallAsync("setTheme", theme);
 

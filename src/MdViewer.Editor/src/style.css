@@ -405,3 +405,21 @@ body {
   max-height: none !important;
   overflow-y: visible !important;
 }
+
+/* ── Cambios recargados desde disco: verde unos segundos y luego se desvanece ── */
+::highlight(mdv-changed) { background-color: rgba(46, 160, 67, 0.32); }
+::highlight(mdv-changed-2) { background-color: rgba(46, 160, 67, 0.22); }
+::highlight(mdv-changed-3) { background-color: rgba(46, 160, 67, 0.13); }
+::highlight(mdv-changed-4) { background-color: rgba(46, 160, 67, 0.06); }
+
+.mdv-changed-mark {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  border-left: 3px solid #2ea043;
+  background: rgba(46, 160, 67, 0.2);
+}
+
+.mdv-changed-mark.mdv-changed-2 { opacity: 0.7; }
+.mdv-changed-mark.mdv-changed-3 { opacity: 0.4; }
+.mdv-changed-mark.mdv-changed-4 { opacity: 0.15; }

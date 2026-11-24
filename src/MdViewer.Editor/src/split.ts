@@ -183,7 +183,7 @@ function normalize(text: string): string[] {
  * una marca a medias (p. ej. "**negrita" sin los asteriscos de cierre): entonces el conversor la deja
  * tal cual, así que además se quitan de cada palabra los símbolos de formato y la parte (url) de los enlaces.
  */
-function sourceWords(selected: string): string[] {
+export function sourceWords(selected: string): string[] {
   const text = markdownToText(selected)
     .replace(/!?\[([^\]]*)\]\([^)]*\)?/g, "$1") // enlaces e imágenes, aunque estén cortados
     .replace(/\]\([^)\s]*\)?/g, " ") // resto de un enlace cortado por la izquierda: "](url)"

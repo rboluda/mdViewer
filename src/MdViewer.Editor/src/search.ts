@@ -31,7 +31,7 @@ function buildRegex(query: string, options: FindOptions): RegExp {
   return new RegExp(source, options.caseSensitive ? "g" : "gi");
 }
 
-function isVisible(node: Text): boolean {
+export function isVisible(node: Text): boolean {
   const parent = node.parentElement;
   if (!parent) return false;
   if (parent.closest(".vditor-ir__marker, .vditor-ir__preview svg, .katex-mathml")) {

@@ -25,7 +25,7 @@ Editor Markdown **libre y de código abierto** para Windows, con edición en viv
 - Guardado atómico: un corte de luz nunca deja un archivo a medias.
 - Respeta la codificación (UTF-8, UTF-8 con BOM, UTF-16, ANSI) y los saltos de línea originales.
 - Borradores de recuperación cada 30 s y aviso al reabrir tras un cierre inesperado.
-- Detecta cambios hechos al archivo desde otro programa.
+- Aviso si otro programa modifica o elimina el archivo abierto: se puede cargar la nueva versión (los cambios se resaltan en verde unos segundos) o mantener la del editor.
 - Actualización automática desde GitHub Releases.
 - Funciona sin conexión: no se carga nada de internet.
 - Tema azul y blanco con los colores del icono (predeterminado), además de claro, oscuro y según el sistema.

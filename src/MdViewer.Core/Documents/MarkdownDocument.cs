@@ -77,6 +77,51 @@ public sealed class MarkdownDocument
            && File.Exists(FilePath)
            && File.GetLastWriteTimeUtc(FilePath) != LastKnownWriteTimeUtc;
 
+    /// <summary>
+    /// Comprueba si otro programa ha cambiado o borrado el archivo. Si solo ha cambiado la fecha
+    /// (mismo contenido, p. ej. al "tocarlo" o guardarlo sin cambios) lo da por visto y no avisa.
+    /// Cada cambio se informa una sola vez: tras responder, <see cref="KeepEditorVersion"/>
+    /// o <see cref="ReloadAsync"/> lo dan por resuelto.
+    /// </summary>
+    public async Task<DiskChange> CheckDiskAsync(CancellationToken cancellationToken = default)
+    {
+        if (FilePath is null)
+        {
+            return DiskChange.None;
+        }
+
+        if (!File.Exists(FilePath))
+        {
+            return LastKnownWriteTimeUtc is null ? DiskChange.None : DiskChange.Deleted;
+        }
+
+        var writeTime = File.GetLastWriteTimeUtc(FilePath);
+        if (writeTime == LastKnownWriteTimeUtc)
+        {
+            return DiskChange.None;
+        }
+
+        var content = await TextFileCodec.ReadAsync(FilePath, cancellationToken).ConfigureAwait(false);
+        if (string.Equals(content.Text, _savedText, StringComparison.Ordinal) && content.Format == Format)
+        {
+            LastKnownWriteTimeUtc = writeTime;
+            return DiskChange.None;
+        }
+
+        return DiskChange.Modified;
+    }
+
+    /// <summary>
+    /// El usuario decide quedarse con lo que hay en el editor aunque el archivo haya cambiado o
+    /// desaparecido: no se vuelve a avisar de ese cambio y el documento queda pendiente de guardar
+    /// (al guardar se sobrescribe o se vuelve a crear el archivo).
+    /// </summary>
+    public void KeepEditorVersion()
+    {
+        LastKnownWriteTimeUtc = FilePath is not null && File.Exists(FilePath) ? File.GetLastWriteTimeUtc(FilePath) : null;
+        _pendingNonTextChange = true;
+    }
+
     public async Task ReloadAsync(CancellationToken cancellationToken = default)
     {
         if (FilePath is null)

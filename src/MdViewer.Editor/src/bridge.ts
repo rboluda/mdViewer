@@ -57,6 +57,7 @@ export interface EditorApi {
   load(markdown: string, options?: LoadOptions): void;
   getMarkdown(): string;
   setValue(markdown: string): void;
+  reloadValue(markdown: string, previous: string): void;
   setTheme(theme: EditorTheme): void;
   setMode(mode: EditorMode): void;
   focus(): void;
