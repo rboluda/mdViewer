@@ -67,10 +67,12 @@ public partial class MainWindow : Window
         _editor.OutlineChanged += (_, items) => SidebarPanel.SetOutline(items);
         _editor.ActiveHeadingChanged += (_, index) => SidebarPanel.SetActiveHeading(index);
         _editor.StatusMessage += (_, text) => StatusText.Text = text;
-        _editor.CopyRequested += (_, text) =>
+        _editor.CopyRequested += async (_, text) =>
         {
-            SafeClipboard.SetText(text);
-            StatusText.Text = "Código copiado al portapapeles";
+            // Fuera del aviso de WebView2: el portapapeles puede tener que avisar a su dueño anterior,
+            // que puede ser el propio navegador del editor, y no conviene hacerlo mientras espera.
+            await Dispatcher.Yield();
+            await CopyToClipboardAsync(text, "Código copiado al portapapeles");
         };
         _editor.ImageReceived += async (_, image) => await InsertImageDataAsync(image.Name, image.Data);
         FindBarPanel.Attach(_editor);

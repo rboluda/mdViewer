@@ -352,13 +352,13 @@ public partial class MainWindow
         }
     }
 
-    private async Task CopyAsMarkdownAsync() => SetClipboardText(await _editor.SelectionMarkdownAsync());
+    private async Task CopyAsMarkdownAsync() => await SetClipboardTextAsync(await _editor.SelectionMarkdownAsync());
 
-    private async Task CopyAsPlainTextAsync() => SetClipboardText(await _editor.SelectionTextAsync());
+    private async Task CopyAsPlainTextAsync() => await SetClipboardTextAsync(await _editor.SelectionTextAsync());
 
-    private async Task CopyAsHtmlAsync() => SetClipboardText(await _editor.SelectionHtmlAsync());
+    private async Task CopyAsHtmlAsync() => await SetClipboardTextAsync(await _editor.SelectionHtmlAsync());
 
-    private void SetClipboardText(string text)
+    private async Task SetClipboardTextAsync(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -366,9 +366,14 @@ public partial class MainWindow
             return;
         }
 
-        SafeClipboard.SetText(text);
-        StatusText.Text = "Copiado al portapapeles";
+        await CopyToClipboardAsync(text, "Copiado al portapapeles");
     }
+
+    /// <summary>Copia el texto y lo indica en la barra de estado (también si no ha sido posible).</summary>
+    private async Task CopyToClipboardAsync(string text, string done) =>
+        StatusText.Text = await SafeClipboard.SetTextAsync(text)
+            ? done
+            : "No se pudo copiar: otro programa está usando el portapapeles. Vuelve a intentarlo.";
 
     private static async Task ToggleWritingSettingAsync(Action<AppSettings> change)
     {
@@ -456,8 +461,7 @@ public partial class MainWindow
             return;
         }
 
-        SafeClipboard.SetText(code);
-        StatusText.Text = "Código copiado";
+        await CopyToClipboardAsync(code, "Código copiado");
     }
 
     private async Task OpenLinkAtCursorAsync()
@@ -481,8 +485,7 @@ public partial class MainWindow
             return;
         }
 
-        SafeClipboard.SetText(href);
-        StatusText.Text = "Dirección copiada";
+        await CopyToClipboardAsync(href, "Dirección copiada");
     }
 
     // ───────────────────────── Ver ─────────────────────────

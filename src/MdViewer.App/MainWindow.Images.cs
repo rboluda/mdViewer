@@ -175,8 +175,9 @@ public partial class MainWindow
         image.CacheOption = BitmapCacheOption.OnLoad;
         image.StreamSource = stream;
         image.EndInit();
-        SafeClipboard.SetImage(image);
-        StatusText.Text = "Imagen copiada al portapapeles";
+        StatusText.Text = await SafeClipboard.SetImageAsync(image)
+            ? "Imagen copiada al portapapeles"
+            : "No se pudo copiar: otro programa está usando el portapapeles. Vuelve a intentarlo.";
     }
 
     private async Task OpenImageLocationAsync()
